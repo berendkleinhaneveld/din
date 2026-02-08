@@ -16,4 +16,13 @@ struct Track: Identifiable, Equatable, Hashable {
         self.album = album
         self.duration = duration
     }
+
+    var subtitle: String? {
+        let hasArtist = artist != "Unknown Artist"
+        let hasAlbum = album != "Unknown Album"
+        if hasArtist && hasAlbum { return "\(artist) — \(album)" }
+        if hasArtist { return artist }
+        if hasAlbum { return album }
+        return nil
+    }
 }

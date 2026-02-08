@@ -27,9 +27,17 @@ struct PlaylistView: View {
                             isPlaying: manager.currentIndex == index && manager.isPlaying,
                             isCurrent: manager.currentIndex == index
                         )
-                        .contentShape(Rectangle())
+                        .tag(track.id)
                         .onTapGesture(count: 2) {
                             manager.playTrack(at: index)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                manager.removeTracks(ids: [track.id])
+                                selection.remove(track.id)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                         .contextMenu {
                             Button("Show in Finder") {
@@ -64,14 +72,10 @@ struct PlaylistView: View {
             handleDrop(providers)
             return true
         }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button(action: manager.clearPlaylist) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 11))
-                }
-                .help("Clear Playlist")
-                .disabled(manager.tracks.isEmpty)
+        .onDeleteCommand {
+            if !selection.isEmpty {
+                manager.removeTracks(ids: selection)
+                selection.removeAll()
             }
         }
     }
@@ -119,10 +123,12 @@ private struct TrackRow: View {
                 Text(track.title)
                     .font(.system(size: 12, weight: isCurrent ? .semibold : .regular))
                     .lineLimit(1)
-                Text("\(track.artist) — \(track.album)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                if let subtitle = track.subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()

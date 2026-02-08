@@ -9,13 +9,13 @@ struct ControlsView: View {
         VStack(spacing: 6) {
             // Now playing info
             VStack(spacing: 1) {
-                Text(manager.currentTrack?.title ?? "No Track")
+                Text(manager.currentTrack?.title ?? "Box")
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let track = manager.currentTrack {
-                    Text("\(track.artist) — \(track.album)")
+                if let subtitle = manager.currentTrack?.subtitle {
+                    Text(subtitle)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -30,18 +30,21 @@ struct ControlsView: View {
                         .font(.system(size: 14))
                 }
                 .buttonStyle(.plain)
+                .disabled(!manager.hasContent)
 
                 Button(action: manager.togglePlayPause) {
                     Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill")
                         .font(.system(size: 18))
                 }
                 .buttonStyle(.plain)
+                .disabled(!manager.hasContent)
 
                 Button(action: manager.next) {
                     Image(systemName: "forward.fill")
                         .font(.system(size: 14))
                 }
                 .buttonStyle(.plain)
+                .disabled(!manager.hasContent)
 
                 Spacer()
 
@@ -52,7 +55,7 @@ struct ControlsView: View {
                 Slider(value: Binding(
                     get: { manager.volume },
                     set: { manager.setVolume($0) }
-                ), in: 0...1)
+                ), in: Float(0)...Float(1))
                 .frame(width: 80)
                 .controlSize(.mini)
             }

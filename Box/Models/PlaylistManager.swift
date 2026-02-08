@@ -4,11 +4,14 @@ import SwiftUI
 
 @MainActor
 final class PlaylistManager: ObservableObject {
+    static let shared = PlaylistManager()
+
     @Published var tracks: [Track] = []
     @Published var currentIndex: Int?
     @Published var isPlaying = false
     @Published var currentTime: TimeInterval = 0
     @Published var volume: Float = 0.75
+    @Published var repeatEnabled = false
 
     private var player: AVAudioPlayer?
     private var timer: Timer?
@@ -18,9 +21,19 @@ final class PlaylistManager: ObservableObject {
         return tracks[i]
     }
 
+    var totalDuration: TimeInterval {
+        tracks.reduce(0) { $0 + $1.duration }
+    }
+
+    var hasContent: Bool { !tracks.isEmpty }
+
     // MARK: - Playback Controls
 
     func play() {
+        if currentIndex == nil && !tracks.isEmpty {
+            playTrack(at: 0)
+            return
+        }
         if player == nil, let track = currentTrack {
             loadAndPlay(track: track)
             return
@@ -42,29 +55,39 @@ final class PlaylistManager: ObservableObject {
 
     func next() {
         guard !tracks.isEmpty else { return }
-        let nextIndex: Int
         if let current = currentIndex {
-            nextIndex = (current + 1) % tracks.count
+            let nextIndex = current + 1
+            if nextIndex < tracks.count {
+                playTrack(at: nextIndex)
+            } else if repeatEnabled {
+                playTrack(at: 0)
+            } else {
+                stop()
+                currentIndex = 0
+            }
         } else {
-            nextIndex = 0
+            playTrack(at: 0)
         }
-        playTrack(at: nextIndex)
     }
 
     func previous() {
         guard !tracks.isEmpty else { return }
-        // If more than 3 seconds in, restart current track
         if currentTime > 3, let idx = currentIndex {
             playTrack(at: idx)
             return
         }
-        let prevIndex: Int
         if let current = currentIndex {
-            prevIndex = (current - 1 + tracks.count) % tracks.count
+            let prevIndex = current - 1
+            if prevIndex >= 0 {
+                playTrack(at: prevIndex)
+            } else if repeatEnabled {
+                playTrack(at: tracks.count - 1)
+            } else {
+                playTrack(at: 0)
+            }
         } else {
-            prevIndex = 0
+            playTrack(at: 0)
         }
-        playTrack(at: prevIndex)
     }
 
     func playTrack(at index: Int) {
@@ -93,12 +116,10 @@ final class PlaylistManager: ObservableObject {
         let placeholders = audioURLs.map { Track(url: $0) }
         tracks.insert(contentsOf: placeholders, at: min(insertionIndex, tracks.count))
 
-        // Adjust currentIndex if insertion is before it
         if let ci = currentIndex, insertionIndex <= ci {
             currentIndex = ci + placeholders.count
         }
 
-        // Load metadata asynchronously
         let startIndex = insertionIndex
         for (offset, url) in audioURLs.enumerated() {
             Task {
@@ -122,7 +143,6 @@ final class PlaylistManager: ObservableObject {
 
         if let cid = currentID {
             if ids.contains(cid) {
-                // Current track removed
                 stop()
                 if !tracks.isEmpty {
                     currentIndex = min(currentIndex ?? 0, tracks.count - 1)
@@ -131,7 +151,6 @@ final class PlaylistManager: ObservableObject {
                     currentIndex = nil
                 }
             } else {
-                // Update index to match current track's new position
                 currentIndex = tracks.firstIndex(where: { $0.id == cid })
             }
         }
@@ -191,7 +210,6 @@ final class PlaylistManager: ObservableObject {
                 if let p = self.player {
                     self.currentTime = p.currentTime
                     if !p.isPlaying && self.isPlaying {
-                        // Track finished
                         self.next()
                     }
                 }
