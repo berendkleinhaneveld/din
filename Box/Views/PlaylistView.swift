@@ -115,7 +115,7 @@ private struct TrackRow: View {
                         .foregroundStyle(Color.accentColor)
                 } else {
                     Text("\(index)")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                 }
             }
             .frame(width: 22, alignment: .trailing)
@@ -128,7 +128,7 @@ private struct TrackRow: View {
                 if let subtitle = track.subtitle {
                     Text(subtitle)
                         .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
             }
@@ -138,7 +138,7 @@ private struct TrackRow: View {
 
             Text(formatDuration(track.duration))
                 .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.tertiary)
         }
     }
 
