@@ -27,7 +27,10 @@ struct PlaylistView: View {
                             isPlaying: manager.currentIndex == index && manager.isPlaying,
                             isCurrent: manager.currentIndex == index
                         )
+                        .frame(height: 36)
                         .tag(track.id)
+                        .listRowSeparator(.visible)
+                        .listRowSeparatorTint(Color(nsColor: .separatorColor).opacity(0.5))
                         .onTapGesture(count: 2) {
                             manager.playTrack(at: index)
                         }
@@ -61,7 +64,6 @@ struct PlaylistView: View {
                     }
                 }
                 .listStyle(.plain)
-                .alternatingRowBackgrounds(.enabled)
             }
         }
         .background(
@@ -110,7 +112,7 @@ private struct TrackRow: View {
                 if isPlaying {
                     Image(systemName: "speaker.wave.2.fill")
                         .font(.system(size: 9))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.accentColor)
                 } else {
                     Text("\(index)")
                         .foregroundStyle(.secondary)
@@ -130,6 +132,7 @@ private struct TrackRow: View {
                         .lineLimit(1)
                 }
             }
+            .frame(height: 30, alignment: .center)
 
             Spacer()
 
@@ -137,7 +140,6 @@ private struct TrackRow: View {
                 .font(.system(size: 11).monospacedDigit())
                 .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 2)
     }
 
     private func formatDuration(_ duration: TimeInterval) -> String {

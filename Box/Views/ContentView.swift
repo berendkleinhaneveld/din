@@ -9,9 +9,7 @@ struct ContentView: View {
 
             // Status bar
             HStack(spacing: 8) {
-                Button {
-                    manager.repeatEnabled.toggle()
-                } label: {
+                Button(action: manager.toggleRepeat) {
                     Image(systemName: "repeat")
                         .font(.system(size: 11))
                         .foregroundStyle(manager.repeatEnabled ? .primary : .tertiary)

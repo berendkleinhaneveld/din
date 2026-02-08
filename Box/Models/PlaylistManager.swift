@@ -15,6 +15,7 @@ final class PlaylistManager: ObservableObject {
 
     private var player: AVAudioPlayer?
     private var timer: Timer?
+    private var tickCount = 0
 
     var currentTrack: Track? {
         guard let i = currentIndex, tracks.indices.contains(i) else { return nil }
@@ -27,6 +28,10 @@ final class PlaylistManager: ObservableObject {
 
     var hasContent: Bool { !tracks.isEmpty }
 
+    init() {
+        restoreState()
+    }
+
     // MARK: - Playback Controls
 
     func play() {
@@ -35,7 +40,11 @@ final class PlaylistManager: ObservableObject {
             return
         }
         if player == nil, let track = currentTrack {
+            let resumeTime = currentTime
             loadAndPlay(track: track)
+            if resumeTime > 0 {
+                seek(to: resumeTime)
+            }
             return
         }
         player?.play()
@@ -47,6 +56,7 @@ final class PlaylistManager: ObservableObject {
         player?.pause()
         isPlaying = false
         stopTimer()
+        saveState()
     }
 
     func togglePlayPause() {
@@ -104,6 +114,12 @@ final class PlaylistManager: ObservableObject {
     func setVolume(_ vol: Float) {
         volume = vol
         player?.volume = vol
+        saveState()
+    }
+
+    func toggleRepeat() {
+        repeatEnabled.toggle()
+        saveState()
     }
 
     // MARK: - Playlist Management
@@ -133,6 +149,7 @@ final class PlaylistManager: ObservableObject {
                 }
             }
         }
+        saveState()
     }
 
     func removeTracks(ids: Set<Track.ID>) {
@@ -154,12 +171,14 @@ final class PlaylistManager: ObservableObject {
                 currentIndex = tracks.firstIndex(where: { $0.id == cid })
             }
         }
+        saveState()
     }
 
     func clearPlaylist() {
         stop()
         tracks.removeAll()
         currentIndex = nil
+        saveState()
     }
 
     func replacePlaylist(urls: [URL]) {
@@ -176,6 +195,52 @@ final class PlaylistManager: ObservableObject {
         if let cid = currentID {
             currentIndex = tracks.firstIndex(where: { $0.id == cid })
         }
+        saveState()
+    }
+
+    // MARK: - Persistence
+
+    func saveState() {
+        let defaults = UserDefaults.standard
+        defaults.set(tracks.map { $0.url.absoluteString }, forKey: "box.playlist")
+        defaults.set(currentIndex ?? -1, forKey: "box.currentIndex")
+        defaults.set(currentTime, forKey: "box.currentTime")
+        defaults.set(Double(volume), forKey: "box.volume")
+        defaults.set(repeatEnabled, forKey: "box.repeat")
+    }
+
+    private func restoreState() {
+        let defaults = UserDefaults.standard
+
+        if defaults.object(forKey: "box.volume") != nil {
+            volume = Float(defaults.double(forKey: "box.volume"))
+        }
+        repeatEnabled = defaults.bool(forKey: "box.repeat")
+
+        guard let urlStrings = defaults.stringArray(forKey: "box.playlist") else { return }
+        let urls = urlStrings.compactMap { URL(string: $0) }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+        guard !urls.isEmpty else { return }
+
+        tracks = urls.map { Track(url: $0) }
+
+        for (index, url) in urls.enumerated() {
+            Task {
+                let track = await MetadataLoader.load(url: url)
+                if index < self.tracks.count, self.tracks[index].url == url {
+                    self.tracks[index].title = track.title
+                    self.tracks[index].artist = track.artist
+                    self.tracks[index].album = track.album
+                    self.tracks[index].duration = track.duration
+                }
+            }
+        }
+
+        let savedIndex = defaults.integer(forKey: "box.currentIndex")
+        if savedIndex >= 0, tracks.indices.contains(savedIndex) {
+            currentIndex = savedIndex
+        }
+        currentTime = defaults.double(forKey: "box.currentTime")
     }
 
     // MARK: - Private
@@ -204,6 +269,7 @@ final class PlaylistManager: ObservableObject {
 
     private func startTimer() {
         stopTimer()
+        tickCount = 0
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
@@ -212,6 +278,10 @@ final class PlaylistManager: ObservableObject {
                     if !p.isPlaying && self.isPlaying {
                         self.next()
                     }
+                }
+                self.tickCount += 1
+                if self.tickCount % 50 == 0 {
+                    self.saveState()
                 }
             }
         }

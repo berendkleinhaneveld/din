@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct ControlsView: View {
     @ObservedObject var manager: PlaylistManager
     @State private var isDropTargeted = false
+    @State private var showVolumePopover = false
 
     var body: some View {
         VStack(spacing: 6) {
@@ -23,41 +24,50 @@ struct ControlsView: View {
                 }
             }
 
-            // Transport controls + volume
-            HStack(spacing: 12) {
-                Button(action: manager.previous) {
-                    Image(systemName: "backward.fill")
-                        .font(.system(size: 14))
+            // Transport controls (centered) + volume (right)
+            ZStack {
+                HStack(spacing: 12) {
+                    Button(action: manager.previous) {
+                        Image(systemName: "backward.fill")
+                            .font(.system(size: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!manager.hasContent)
+
+                    Button(action: manager.togglePlayPause) {
+                        Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 18))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!manager.hasContent)
+
+                    Button(action: manager.next) {
+                        Image(systemName: "forward.fill")
+                            .font(.system(size: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!manager.hasContent)
                 }
-                .buttonStyle(.plain)
-                .disabled(!manager.hasContent)
 
-                Button(action: manager.togglePlayPause) {
-                    Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 18))
+                HStack {
+                    Spacer()
+                    Button {
+                        showVolumePopover.toggle()
+                    } label: {
+                        Image(systemName: volumeIconName)
+                            .font(.system(size: 12))
+                            .frame(width: 20, height: 20)
+                    }
+                    .buttonStyle(.plain)
+                    .popover(isPresented: $showVolumePopover, arrowEdge: .bottom) {
+                        Slider(value: Binding(
+                            get: { manager.volume },
+                            set: { manager.setVolume($0) }
+                        ), in: Float(0)...Float(1))
+                        .frame(width: 100)
+                        .padding(8)
+                    }
                 }
-                .buttonStyle(.plain)
-                .disabled(!manager.hasContent)
-
-                Button(action: manager.next) {
-                    Image(systemName: "forward.fill")
-                        .font(.system(size: 14))
-                }
-                .buttonStyle(.plain)
-                .disabled(!manager.hasContent)
-
-                Spacer()
-
-                Image(systemName: "speaker.fill")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-
-                Slider(value: Binding(
-                    get: { manager.volume },
-                    set: { manager.setVolume($0) }
-                ), in: Float(0)...Float(1))
-                .frame(width: 80)
-                .controlSize(.mini)
             }
 
             // Progress bar
@@ -77,6 +87,13 @@ struct ControlsView: View {
             handleDrop(providers)
             return true
         }
+    }
+
+    private var volumeIconName: String {
+        if manager.volume <= 0 { return "speaker.slash.fill" }
+        if manager.volume < 0.33 { return "speaker.wave.1.fill" }
+        if manager.volume < 0.66 { return "speaker.wave.2.fill" }
+        return "speaker.wave.3.fill"
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) {

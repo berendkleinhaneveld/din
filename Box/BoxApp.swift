@@ -9,6 +9,7 @@ struct BoxApp: App {
         WindowGroup {
             ContentView(manager: .shared)
         }
+        .handlesExternalEvents(matching: [])
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 320, height: 500)
         .commands {
@@ -45,6 +46,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
         Task { @MainActor in
             PlaylistManager.shared.replacePlaylist(urls: urls)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        MainActor.assumeIsolated {
+            PlaylistManager.shared.saveState()
         }
     }
 
@@ -53,5 +61,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             window.makeKeyAndOrderFront(nil)
         }
         return false
+    }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Close any extra windows that SwiftUI may have created
+        DispatchQueue.main.async {
+            let visible = NSApp.windows.filter { $0.isVisible }
+            for window in visible.dropFirst() {
+                window.close()
+            }
+        }
     }
 }
