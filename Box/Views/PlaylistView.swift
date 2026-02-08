@@ -31,9 +31,7 @@ struct PlaylistView: View {
                         .tag(track.id)
                         .listRowSeparator(.visible)
                         .listRowSeparatorTint(Color(nsColor: .separatorColor).opacity(0.5))
-                        .onTapGesture(count: 2) {
-                            manager.playTrack(at: index)
-                        }
+                        .background(DoubleClickHandler { manager.playTrack(at: index) })
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 manager.removeTracks(ids: [track.id])
@@ -99,6 +97,35 @@ struct PlaylistView: View {
         }
     }
 }
+
+// MARK: - Native double-click handler that doesn't interfere with List selection
+
+private struct DoubleClickHandler: NSViewRepresentable {
+    let action: () -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = DoubleClickNSView()
+        view.action = action
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        (nsView as? DoubleClickNSView)?.action = action
+    }
+}
+
+private class DoubleClickNSView: NSView {
+    var action: (() -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
+        if event.clickCount == 2 {
+            action?()
+        }
+    }
+}
+
+// MARK: - Track Row
 
 private struct TrackRow: View {
     let track: Track

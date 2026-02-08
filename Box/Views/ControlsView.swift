@@ -8,20 +8,24 @@ struct ControlsView: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            // Now playing info
-            VStack(spacing: 1) {
+            // Now playing info — fixed height so controls don't shift
+            VStack(alignment: .leading, spacing: 1) {
                 Text(manager.currentTrack?.title ?? "Box")
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let subtitle = manager.currentTrack?.subtitle {
-                    Text(subtitle)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                Group {
+                    if let subtitle = manager.currentTrack?.subtitle {
+                        Text(subtitle)
+                    } else {
+                        Text(" ")
+                    }
                 }
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             // Transport controls (centered) + volume (right)

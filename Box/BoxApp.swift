@@ -13,6 +13,9 @@ struct BoxApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 320, height: 500)
         .commands {
+            // Disable tabs
+            CommandGroup(replacing: .toolbar) {}
+
             CommandGroup(replacing: .newItem) {
                 Button("Open...") {
                     Self.showOpenPanel(replace: true)
@@ -64,11 +67,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Close any extra windows that SwiftUI may have created
+        // Disable window tabbing (removes "Show Tab Bar" / "Show All Tabs" from View menu)
+        NSWindow.allowsAutomaticWindowTabbing = false
+
+        // Close extra windows that SwiftUI may have created
         DispatchQueue.main.async {
             let visible = NSApp.windows.filter { $0.isVisible }
             for window in visible.dropFirst() {
                 window.close()
+            }
+        }
+
+        // Keyboard shortcuts: Space = play/pause, [ = previous, ] = next
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                .subtracting([.capsLock, .numericPad, .function])
+            guard modifiers.isEmpty else { return event }
+
+            switch event.charactersIgnoringModifiers {
+            case " ":
+                Task { @MainActor in PlaylistManager.shared.togglePlayPause() }
+                return nil
+            case "[":
+                Task { @MainActor in PlaylistManager.shared.previous() }
+                return nil
+            case "]":
+                Task { @MainActor in PlaylistManager.shared.next() }
+                return nil
+            default:
+                return event
             }
         }
     }

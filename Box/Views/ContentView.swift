@@ -8,29 +8,31 @@ struct ContentView: View {
             ControlsView(manager: manager)
 
             // Status bar
-            HStack(spacing: 8) {
-                Button(action: manager.toggleRepeat) {
-                    Image(systemName: "repeat")
-                        .font(.system(size: 11))
-                        .foregroundStyle(manager.repeatEnabled ? .primary : .tertiary)
-                }
-                .buttonStyle(.plain)
-                .help(manager.repeatEnabled ? "Repeat On" : "Repeat Off")
-
+            ZStack {
                 Text(statusText)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
 
-                Spacer()
+                HStack {
+                    Button(action: manager.toggleRepeat) {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 11))
+                            .foregroundStyle(manager.repeatEnabled ? .primary : .tertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(manager.repeatEnabled ? "Repeat On" : "Repeat Off")
 
-                Button(action: manager.clearPlaylist) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                    Spacer()
+
+                    Button(action: manager.clearPlaylist) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Clear Playlist")
+                    .disabled(!manager.hasContent)
                 }
-                .buttonStyle(.plain)
-                .help("Clear Playlist")
-                .disabled(!manager.hasContent)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
