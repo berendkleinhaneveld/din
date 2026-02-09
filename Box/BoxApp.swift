@@ -26,6 +26,18 @@ struct BoxApp: App {
                     Self.showOpenPanel(replace: false)
                 }
                 .keyboardShortcut("o", modifiers: [.command, .shift])
+
+                Divider()
+
+                Button("Save Playlist...") {
+                    PlaylistManager.shared.savePlaylistToFile()
+                }
+                .keyboardShortcut("s")
+
+                Button("Load Playlist...") {
+                    PlaylistManager.shared.loadPlaylistFromFile(replace: true)
+                }
+                .keyboardShortcut("l")
             }
         }
     }

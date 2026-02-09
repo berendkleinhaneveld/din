@@ -2,6 +2,7 @@ import AVFoundation
 import Combine
 import MediaPlayer
 import SwiftUI
+import UniformTypeIdentifiers
 
 @MainActor
 final class PlaylistManager: ObservableObject {
@@ -258,6 +259,36 @@ final class PlaylistManager: ObservableObject {
         registerUndoSnapshot()
         tracks.move(fromOffsets: source, toOffset: destination)
         saveState()
+    }
+
+    // MARK: - M3U8 Save/Load
+
+    func savePlaylistToFile() {
+        guard !tracks.isEmpty else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "m3u8") ?? .plainText]
+        panel.nameFieldStringValue = "Playlist.m3u8"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let content = M3U8.write(tracks: tracks)
+        try? content.write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    func loadPlaylistFromFile(replace: Bool) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [UTType(filenameExtension: "m3u8") ?? .plainText]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return }
+        let baseURL = url.deletingLastPathComponent()
+        let urls = M3U8.parse(contents: contents, relativeTo: baseURL)
+        guard !urls.isEmpty else { return }
+        if replace {
+            replacePlaylist(urls: urls)
+        } else {
+            addTracks(urls: urls)
+        }
     }
 
     // MARK: - Persistence
