@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ControlsView: View {
     @ObservedObject var manager: PlaylistManager
+    @ObservedObject private var time = PlaybackTime.shared
     @State private var isDropTargeted = false
     @State private var showVolumePopover = false
 
@@ -76,7 +77,7 @@ struct ControlsView: View {
 
             // Progress bar
             ProgressBar(
-                currentTime: manager.currentTime,
+                currentTime: time.currentTime,
                 duration: manager.currentTrack?.duration ?? 0,
                 onSeek: manager.seek
             )

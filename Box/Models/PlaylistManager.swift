@@ -3,16 +3,26 @@ import Combine
 import SwiftUI
 
 @MainActor
+final class PlaybackTime: ObservableObject {
+    static let shared = PlaybackTime()
+    @Published var currentTime: TimeInterval = 0
+}
+
+@MainActor
 final class PlaylistManager: ObservableObject {
     static let shared = PlaylistManager()
 
     @Published var tracks: [Track] = []
     @Published var currentIndex: Int?
     @Published var isPlaying = false
-    @Published var currentTime: TimeInterval = 0
     @Published var volume: Float = 0.75
     @Published var repeatEnabled = false
     @Published var selection: Set<Track.ID> = []
+
+    var currentTime: TimeInterval {
+        get { PlaybackTime.shared.currentTime }
+        set { PlaybackTime.shared.currentTime = newValue }
+    }
 
     private var player: AVAudioPlayer?
     private var timer: Timer?
