@@ -37,7 +37,6 @@ struct PlaylistView: View {
                     )
                     .frame(height: 36)
                     .tag(track.id)
-                    .draggable(track.url)
                     .listRowSeparator(.visible)
                     .listRowSeparatorTint(Color(nsColor: .separatorColor).opacity(0.5))
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -67,37 +66,7 @@ struct PlaylistView: View {
                 }
                 .onInsert(of: [.fileURL]) { index, providers in
                     loadURLs(from: providers) { urls in
-                        // Check if these are internal tracks being reordered
-                        let existingURLs = Set(manager.tracks.map(\.url))
-                        let reorderURLs = urls.filter { existingURLs.contains($0) }
-                        let newURLs = urls.filter { !existingURLs.contains($0) }
-
-                        if !reorderURLs.isEmpty {
-                            let reorderSet = Set(reorderURLs)
-                            let idsToMove = manager.tracks.filter { reorderSet.contains($0.url) }.map(\.id)
-                            let tracksToMove = idsToMove.compactMap { id in manager.tracks.first { $0.id == id } }
-                            let idsSet = Set(idsToMove)
-
-                            var adjustedIndex = index
-                            for i in 0..<min(index, manager.tracks.count) {
-                                if idsSet.contains(manager.tracks[i].id) {
-                                    adjustedIndex -= 1
-                                }
-                            }
-
-                            let currentID = manager.currentTrack?.id
-                            manager.tracks.removeAll { idsSet.contains($0.id) }
-                            let insertAt = min(max(0, adjustedIndex), manager.tracks.count)
-                            manager.tracks.insert(contentsOf: tracksToMove, at: insertAt)
-                            if let cid = currentID {
-                                manager.currentIndex = manager.tracks.firstIndex { $0.id == cid }
-                            }
-                            manager.saveState()
-                        }
-
-                        if !newURLs.isEmpty {
-                            manager.addTracks(urls: newURLs, at: index)
-                        }
+                        manager.addTracks(urls: urls, at: index)
                     }
                 }
             }

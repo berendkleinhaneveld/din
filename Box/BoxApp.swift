@@ -119,6 +119,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             case "]":
                 Task { @MainActor in PlaylistManager.shared.next() }
                 return nil
+            case "\r":
+                Task { @MainActor in
+                    let mgr = PlaylistManager.shared
+                    if let selectedID = mgr.selection.first,
+                       let index = mgr.tracks.firstIndex(where: { $0.id == selectedID }) {
+                        mgr.playTrack(at: index)
+                    }
+                }
+                return nil
             default:
                 return event
             }
