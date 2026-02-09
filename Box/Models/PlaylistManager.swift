@@ -284,7 +284,7 @@ final class PlaylistManager: ObservableObject {
         stopTimer()
         tickCount = 0
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 if let p = self.player {
                     self.currentTime = p.currentTime
