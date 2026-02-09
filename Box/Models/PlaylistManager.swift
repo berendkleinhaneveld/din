@@ -3,12 +3,6 @@ import Combine
 import SwiftUI
 
 @MainActor
-final class PlaybackTime: ObservableObject {
-    static let shared = PlaybackTime()
-    @Published var currentTime: TimeInterval = 0
-}
-
-@MainActor
 final class PlaylistManager: ObservableObject {
     static let shared = PlaylistManager()
 
@@ -19,9 +13,13 @@ final class PlaylistManager: ObservableObject {
     @Published var repeatEnabled = false
     @Published var selection: Set<Track.ID> = []
 
-    var currentTime: TimeInterval {
-        get { PlaybackTime.shared.currentTime }
-        set { PlaybackTime.shared.currentTime = newValue }
+    /// Live playback time — read from the player when playing, otherwise cached.
+    /// This is NOT @Published so reading it doesn't trigger view re-renders.
+    private(set) var currentTime: TimeInterval = 0
+
+    /// Live time for UI display — reads directly from the player for accuracy.
+    var displayTime: TimeInterval {
+        player?.currentTime ?? currentTime
     }
 
     var currentIndex: Int? {
@@ -287,7 +285,7 @@ final class PlaylistManager: ObservableObject {
     private func startTimer() {
         stopTimer()
         tickCount = 0
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 if let p = self.player {
@@ -297,7 +295,7 @@ final class PlaylistManager: ObservableObject {
                     }
                 }
                 self.tickCount += 1
-                if self.tickCount % 50 == 0 {
+                if self.tickCount % 20 == 0 {
                     self.saveState()
                 }
             }

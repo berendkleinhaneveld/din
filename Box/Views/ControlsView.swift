@@ -3,7 +3,6 @@ import UniformTypeIdentifiers
 
 struct ControlsView: View {
     @ObservedObject var manager: PlaylistManager
-    @ObservedObject private var time = PlaybackTime.shared
     @State private var isDropTargeted = false
     @State private var showVolumePopover = false
 
@@ -75,12 +74,14 @@ struct ControlsView: View {
                 }
             }
 
-            // Progress bar
-            ProgressBar(
-                currentTime: time.currentTime,
-                duration: manager.currentTrack?.duration ?? 0,
-                onSeek: manager.seek
-            )
+            // Progress bar — TimelineView drives updates without triggering @Published changes
+            TimelineView(.animation(minimumInterval: 0.1, paused: !manager.isPlaying)) { _ in
+                ProgressBar(
+                    currentTime: manager.displayTime,
+                    duration: manager.currentTrack?.duration ?? 0,
+                    onSeek: manager.seek
+                )
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
