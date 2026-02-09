@@ -8,7 +8,10 @@ struct Track: Identifiable, Equatable, Hashable {
     var album: String
     var duration: TimeInterval
 
-    init(id: UUID = UUID(), url: URL, title: String? = nil, artist: String = "Unknown Artist", album: String = "Unknown Album", duration: TimeInterval = 0) {
+    init(
+        id: UUID = UUID(), url: URL, title: String? = nil, artist: String = "Unknown Artist",
+        album: String = "Unknown Album", duration: TimeInterval = 0
+    ) {
         self.id = id
         self.url = url
         self.title = title ?? url.deletingPathExtension().lastPathComponent

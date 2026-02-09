@@ -35,7 +35,7 @@ enum MetadataLoader {
     }
 
     static let supportedExtensions: Set<String> = [
-        "mp3", "m4a", "aac", "wav", "aiff", "aif", "flac", "alac", "caf"
+        "mp3", "m4a", "aac", "wav", "aiff", "aif", "flac", "alac", "caf",
     ]
 
     static func audioFiles(in urls: [URL]) -> [URL] {
@@ -45,7 +45,9 @@ enum MetadataLoader {
             var isDir: ObjCBool = false
             guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { continue }
             if isDir.boolValue {
-                if let enumerator = fm.enumerator(at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
+                if let enumerator = fm.enumerator(
+                    at: url, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])
+                {
                     for case let fileURL as URL in enumerator {
                         if supportedExtensions.contains(fileURL.pathExtension.lowercased()) {
                             results.append(fileURL)
@@ -56,6 +58,8 @@ enum MetadataLoader {
                 results.append(url)
             }
         }
-        return results.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+        return results.sorted {
+            $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending
+        }
     }
 }

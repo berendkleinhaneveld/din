@@ -4,7 +4,7 @@ APP_BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
 CONTENTS = $(APP_BUNDLE)/Contents
 MACOS = $(CONTENTS)/MacOS
 
-.PHONY: build run app clean
+.PHONY: build run app clean lint format
 
 build:
 	swift build
@@ -19,6 +19,12 @@ app: build
 	cp Din/Assets/Din.icns $(CONTENTS)/Resources/Din.icns
 	@echo "Built $(APP_BUNDLE)"
 	@echo "Run with: open $(APP_BUNDLE)"
+
+lint:
+	swift format lint --strict --recursive --parallel Din/
+
+format:
+	swift format lint --strict --recursive --parallel Din/
 
 clean:
 	swift package clean

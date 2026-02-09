@@ -72,7 +72,7 @@ final class PlaylistManager: ObservableObject {
         let oldSelection = selection
         undoManager.registerUndo(withTarget: self) { mgr in
             let playingID = mgr.currentTrackID
-            mgr.registerUndoSnapshot() // register redo
+            mgr.registerUndoSnapshot()  // register redo
             mgr.tracks = oldTracks
             mgr.currentTrackID = oldID
             mgr.selection = oldSelection
@@ -374,7 +374,7 @@ final class PlaylistManager: ObservableObject {
                 MPMediaItemPropertyTitle: track.title,
                 MPMediaItemPropertyPlaybackDuration: track.duration,
                 MPNowPlayingInfoPropertyElapsedPlaybackTime: displayTime,
-                MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0
+                MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
             ]
             if track.artist != "Unknown Artist" {
                 info[MPMediaItemPropertyArtist] = track.artist

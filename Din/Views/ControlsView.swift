@@ -64,10 +64,12 @@ struct ControlsView: View {
                     }
                     .buttonStyle(.plain)
                     .popover(isPresented: $showVolumePopover, arrowEdge: .bottom) {
-                        Slider(value: Binding(
-                            get: { manager.volume },
-                            set: { manager.setVolume($0) }
-                        ), in: Float(0)...Float(1))
+                        Slider(
+                            value: Binding(
+                                get: { manager.volume },
+                                set: { manager.setVolume($0) }
+                            ), in: Float(0)...Float(1)
+                        )
                         .frame(width: 100)
                         .padding(8)
                     }
