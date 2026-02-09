@@ -105,9 +105,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Keyboard shortcuts
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-                .subtracting([.capsLock, .numericPad, .function])
-
             switch event.charactersIgnoringModifiers {
             case " ":
                 Task { @MainActor in PlaylistManager.shared.togglePlayPause() }
@@ -140,26 +137,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return event
         }
 
-        // Media keys (F7/F8/F9 or equivalent) — delivered as system-defined events
-        NSEvent.addLocalMonitorForEvents(matching: .systemDefined) { event in
-            guard event.subtype.rawValue == 8 else { return event }
-            let keyCode = (event.data1 & 0xFFFF0000) >> 16
-            let keyDown = (event.data1 & 0x0000FF00) == 0x0A00
-            guard keyDown else { return event }
-
-            switch keyCode {
-            case 16: // Play/Pause
-                Task { @MainActor in PlaylistManager.shared.togglePlayPause() }
-                return nil
-            case 19: // Next
-                Task { @MainActor in PlaylistManager.shared.next() }
-                return nil
-            case 20: // Previous
-                Task { @MainActor in PlaylistManager.shared.previous() }
-                return nil
-            default:
-                return event
-            }
-        }
     }
 }
