@@ -13,7 +13,7 @@ final class PlaylistManager: ObservableObject {
     static let shared = PlaylistManager()
 
     @Published var tracks: [Track] = []
-    @Published var currentIndex: Int?
+    @Published private(set) var currentTrackID: Track.ID?
     @Published var isPlaying = false
     @Published var volume: Float = 0.75
     @Published var repeatEnabled = false
@@ -24,13 +24,27 @@ final class PlaylistManager: ObservableObject {
         set { PlaybackTime.shared.currentTime = newValue }
     }
 
+    var currentIndex: Int? {
+        get {
+            guard let id = currentTrackID else { return nil }
+            return tracks.firstIndex { $0.id == id }
+        }
+        set {
+            if let i = newValue, tracks.indices.contains(i) {
+                currentTrackID = tracks[i].id
+            } else {
+                currentTrackID = nil
+            }
+        }
+    }
+
     private var player: AVAudioPlayer?
     private var timer: Timer?
     private var tickCount = 0
 
     var currentTrack: Track? {
-        guard let i = currentIndex, tracks.indices.contains(i) else { return nil }
-        return tracks[i]
+        guard let id = currentTrackID else { return nil }
+        return tracks.first { $0.id == id }
     }
 
     var totalDuration: TimeInterval {
@@ -143,10 +157,6 @@ final class PlaylistManager: ObservableObject {
         let placeholders = audioURLs.map { Track(url: $0) }
         tracks.insert(contentsOf: placeholders, at: min(insertionIndex, tracks.count))
 
-        if let ci = currentIndex, insertionIndex <= ci {
-            currentIndex = ci + placeholders.count
-        }
-
         let startIndex = insertionIndex
         for (offset, url) in audioURLs.enumerated() {
             Task {
@@ -165,22 +175,20 @@ final class PlaylistManager: ObservableObject {
 
     func removeTracks(ids: Set<Track.ID>) {
         let wasPlaying = isPlaying
-        let currentID = currentTrack?.id
+        let removingCurrent = currentTrackID.map { ids.contains($0) } ?? false
+        let oldIndex = currentIndex ?? 0
 
         tracks.removeAll { ids.contains($0.id) }
         selection.subtract(ids)
 
-        if let cid = currentID {
-            if ids.contains(cid) {
-                stop()
-                if !tracks.isEmpty {
-                    currentIndex = min(currentIndex ?? 0, tracks.count - 1)
-                    if wasPlaying { play() }
-                } else {
-                    currentIndex = nil
-                }
+        if removingCurrent {
+            stop()
+            if !tracks.isEmpty {
+                let newIndex = min(oldIndex, tracks.count - 1)
+                currentTrackID = tracks[newIndex].id
+                if wasPlaying { play() }
             } else {
-                currentIndex = tracks.firstIndex(where: { $0.id == cid })
+                currentTrackID = nil
             }
         }
         saveState()
@@ -189,7 +197,7 @@ final class PlaylistManager: ObservableObject {
     func clearPlaylist() {
         stop()
         tracks.removeAll()
-        currentIndex = nil
+        currentTrackID = nil
         selection.removeAll()
         saveState()
     }
@@ -203,11 +211,7 @@ final class PlaylistManager: ObservableObject {
     }
 
     func moveTrack(from source: IndexSet, to destination: Int) {
-        let currentID = currentTrack?.id
         tracks.move(fromOffsets: source, toOffset: destination)
-        if let cid = currentID {
-            currentIndex = tracks.firstIndex(where: { $0.id == cid })
-        }
         saveState()
     }
 

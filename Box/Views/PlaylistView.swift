@@ -32,8 +32,8 @@ struct PlaylistView: View {
                     TrackRow(
                         track: track,
                         index: rowIndex(for: track),
-                        isPlaying: manager.currentIndex == rowIndex(for: track) - 1 && manager.isPlaying,
-                        isCurrent: manager.currentIndex == rowIndex(for: track) - 1
+                        isPlaying: track.id == manager.currentTrackID && manager.isPlaying,
+                        isCurrent: track.id == manager.currentTrackID
                     )
                     .frame(height: 36)
                     .tag(track.id)
