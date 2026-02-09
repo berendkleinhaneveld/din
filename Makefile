@@ -13,9 +13,10 @@ run: build
 	.build/debug/Din
 
 app: build
-	mkdir -p $(MACOS)
+	mkdir -p $(MACOS) $(CONTENTS)/Resources
 	cp .build/debug/Din $(MACOS)/Din
 	cp Din/Info.plist $(CONTENTS)/Info.plist
+	cp Din/Assets/Din.icns $(CONTENTS)/Resources/Din.icns
 	@echo "Built $(APP_BUNDLE)"
 	@echo "Run with: open $(APP_BUNDLE)"
 

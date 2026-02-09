@@ -8,7 +8,7 @@ let package = Package(
         .executableTarget(
             name: "Din",
             path: "Din",
-            exclude: ["Info.plist", "Din.entitlements"],
+            exclude: ["Info.plist", "Din.entitlements", "Assets"],
             linkerSettings: [
                 .unsafeFlags(["-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__info_plist", "-Xlinker", "Din/Info.plist"])
             ]
