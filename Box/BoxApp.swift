@@ -103,34 +103,48 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return event
         }
 
-        // Keyboard shortcuts: Space = play/pause, [ = previous, ] = next
+        // Keyboard shortcuts
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
                 .subtracting([.capsLock, .numericPad, .function])
-            guard modifiers.isEmpty else { return event }
 
-            switch event.charactersIgnoringModifiers {
-            case " ":
-                Task { @MainActor in PlaylistManager.shared.togglePlayPause() }
-                return nil
-            case "[":
-                Task { @MainActor in PlaylistManager.shared.previous() }
-                return nil
-            case "]":
-                Task { @MainActor in PlaylistManager.shared.next() }
-                return nil
-            case "\r":
-                Task { @MainActor in
-                    let mgr = PlaylistManager.shared
-                    if let selectedID = mgr.selection.first,
-                       let index = mgr.tracks.firstIndex(where: { $0.id == selectedID }) {
-                        mgr.playTrack(at: index)
+            if modifiers.isEmpty {
+                switch event.charactersIgnoringModifiers {
+                case " ":
+                    Task { @MainActor in PlaylistManager.shared.togglePlayPause() }
+                    return nil
+                case "[":
+                    Task { @MainActor in PlaylistManager.shared.previous() }
+                    return nil
+                case "]":
+                    Task { @MainActor in PlaylistManager.shared.next() }
+                    return nil
+                case "\r":
+                    Task { @MainActor in
+                        let mgr = PlaylistManager.shared
+                        if let selectedID = mgr.selection.first,
+                           let index = mgr.tracks.firstIndex(where: { $0.id == selectedID }) {
+                            mgr.playTrack(at: index)
+                        }
                     }
+                    return nil
+                default:
+                    break
                 }
-                return nil
-            default:
-                return event
+            } else if modifiers == .shift {
+                switch event.charactersIgnoringModifiers {
+                case "[":
+                    Task { @MainActor in PlaylistManager.shared.skipBackward() }
+                    return nil
+                case "]":
+                    Task { @MainActor in PlaylistManager.shared.skipForward() }
+                    return nil
+                default:
+                    break
+                }
             }
+
+            return event
         }
     }
 }

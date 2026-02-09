@@ -1,5 +1,6 @@
 import AVFoundation
 import Combine
+import MediaPlayer
 import SwiftUI
 
 @MainActor
@@ -13,8 +14,7 @@ final class PlaylistManager: ObservableObject {
     @Published var repeatEnabled = false
     @Published var selection: Set<Track.ID> = []
 
-    /// Live playback time — read from the player when playing, otherwise cached.
-    /// This is NOT @Published so reading it doesn't trigger view re-renders.
+    /// Live playback time — NOT @Published so it doesn't trigger view re-renders.
     private(set) var currentTime: TimeInterval = 0
 
     /// Live time for UI display — reads directly from the player for accuracy.
@@ -39,6 +39,7 @@ final class PlaylistManager: ObservableObject {
     private var player: AVAudioPlayer?
     private var timer: Timer?
     private var tickCount = 0
+    private var _suppressUndo = false
 
     var currentTrack: Track? {
         guard let id = currentTrackID else { return nil }
@@ -53,6 +54,32 @@ final class PlaylistManager: ObservableObject {
 
     init() {
         restoreState()
+        setupRemoteCommands()
+    }
+
+    // MARK: - Undo
+
+    private var undoManager: UndoManager? {
+        NSApp.keyWindow?.undoManager ?? NSApp.windows.first?.undoManager
+    }
+
+    private func registerUndoSnapshot() {
+        guard !_suppressUndo else { return }
+        guard let undoManager else { return }
+        let oldTracks = tracks
+        let oldID = currentTrackID
+        let oldSelection = selection
+        undoManager.registerUndo(withTarget: self) { mgr in
+            let playingID = mgr.currentTrackID
+            mgr.registerUndoSnapshot() // register redo
+            mgr.tracks = oldTracks
+            mgr.currentTrackID = oldID
+            mgr.selection = oldSelection
+            if oldID != playingID && mgr.isPlaying {
+                mgr.stop()
+            }
+            mgr.saveState()
+        }
     }
 
     // MARK: - Playback Controls
@@ -73,6 +100,7 @@ final class PlaylistManager: ObservableObject {
         player?.play()
         isPlaying = true
         startTimer()
+        updateNowPlayingInfo()
     }
 
     func pause() {
@@ -80,6 +108,7 @@ final class PlaylistManager: ObservableObject {
         isPlaying = false
         stopTimer()
         saveState()
+        updateNowPlayingInfo()
     }
 
     func togglePlayPause() {
@@ -105,7 +134,7 @@ final class PlaylistManager: ObservableObject {
 
     func previous() {
         guard !tracks.isEmpty else { return }
-        if currentTime > 3, let idx = currentIndex {
+        if displayTime > 3, let idx = currentIndex {
             playTrack(at: idx)
             return
         }
@@ -132,6 +161,17 @@ final class PlaylistManager: ObservableObject {
     func seek(to time: TimeInterval) {
         player?.currentTime = time
         currentTime = time
+        updateNowPlayingInfo()
+    }
+
+    func skipForward(by seconds: TimeInterval = 5) {
+        let target = min(displayTime + seconds, currentTrack?.duration ?? displayTime)
+        seek(to: target)
+    }
+
+    func skipBackward(by seconds: TimeInterval = 5) {
+        let target = max(displayTime - seconds, 0)
+        seek(to: target)
     }
 
     func setVolume(_ vol: Float) {
@@ -148,6 +188,7 @@ final class PlaylistManager: ObservableObject {
     // MARK: - Playlist Management
 
     func addTracks(urls: [URL], at index: Int? = nil) {
+        registerUndoSnapshot()
         let audioURLs = MetadataLoader.audioFiles(in: urls)
         guard !audioURLs.isEmpty else { return }
 
@@ -172,6 +213,7 @@ final class PlaylistManager: ObservableObject {
     }
 
     func removeTracks(ids: Set<Track.ID>) {
+        registerUndoSnapshot()
         let wasPlaying = isPlaying
         let removingCurrent = currentTrackID.map { ids.contains($0) } ?? false
         let oldIndex = currentIndex ?? 0
@@ -193,6 +235,7 @@ final class PlaylistManager: ObservableObject {
     }
 
     func clearPlaylist() {
+        registerUndoSnapshot()
         stop()
         tracks.removeAll()
         currentTrackID = nil
@@ -201,14 +244,18 @@ final class PlaylistManager: ObservableObject {
     }
 
     func replacePlaylist(urls: [URL]) {
+        registerUndoSnapshot()
+        _suppressUndo = true
         clearPlaylist()
         addTracks(urls: urls)
+        _suppressUndo = false
         if !tracks.isEmpty {
             playTrack(at: 0)
         }
     }
 
     func moveTrack(from source: IndexSet, to destination: Int) {
+        registerUndoSnapshot()
         tracks.move(fromOffsets: source, toOffset: destination)
         saveState()
     }
@@ -219,7 +266,7 @@ final class PlaylistManager: ObservableObject {
         let defaults = UserDefaults.standard
         defaults.set(tracks.map { $0.url.absoluteString }, forKey: "box.playlist")
         defaults.set(currentIndex ?? -1, forKey: "box.currentIndex")
-        defaults.set(currentTime, forKey: "box.currentTime")
+        defaults.set(displayTime, forKey: "box.currentTime")
         defaults.set(Double(volume), forKey: "box.volume")
         defaults.set(repeatEnabled, forKey: "box.repeat")
     }
@@ -258,6 +305,60 @@ final class PlaylistManager: ObservableObject {
         currentTime = defaults.double(forKey: "box.currentTime")
     }
 
+    // MARK: - Media Keys
+
+    private func setupRemoteCommands() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+
+        commandCenter.playCommand.addTarget { _ in
+            Task { @MainActor in PlaylistManager.shared.play() }
+            return .success
+        }
+        commandCenter.pauseCommand.addTarget { _ in
+            Task { @MainActor in PlaylistManager.shared.pause() }
+            return .success
+        }
+        commandCenter.togglePlayPauseCommand.addTarget { _ in
+            Task { @MainActor in PlaylistManager.shared.togglePlayPause() }
+            return .success
+        }
+        commandCenter.nextTrackCommand.addTarget { _ in
+            Task { @MainActor in PlaylistManager.shared.next() }
+            return .success
+        }
+        commandCenter.previousTrackCommand.addTarget { _ in
+            Task { @MainActor in PlaylistManager.shared.previous() }
+            return .success
+        }
+        commandCenter.changePlaybackPositionCommand.addTarget { event in
+            guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            Task { @MainActor in PlaylistManager.shared.seek(to: event.positionTime) }
+            return .success
+        }
+    }
+
+    private func updateNowPlayingInfo() {
+        if let track = currentTrack {
+            var info: [String: Any] = [
+                MPMediaItemPropertyTitle: track.title,
+                MPMediaItemPropertyPlaybackDuration: track.duration,
+                MPNowPlayingInfoPropertyElapsedPlaybackTime: displayTime,
+                MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0
+            ]
+            if track.artist != "Unknown Artist" {
+                info[MPMediaItemPropertyArtist] = track.artist
+            }
+            if track.album != "Unknown Album" {
+                info[MPMediaItemPropertyAlbumTitle] = track.album
+            }
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+            MPNowPlayingInfoCenter.default().playbackState = isPlaying ? .playing : .paused
+        } else {
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            MPNowPlayingInfoCenter.default().playbackState = .stopped
+        }
+    }
+
     // MARK: - Private
 
     private func loadAndPlay(track: Track) {
@@ -269,6 +370,7 @@ final class PlaylistManager: ObservableObject {
             player?.play()
             isPlaying = true
             startTimer()
+            updateNowPlayingInfo()
         } catch {
             isPlaying = false
         }
@@ -280,6 +382,7 @@ final class PlaylistManager: ObservableObject {
         isPlaying = false
         currentTime = 0
         stopTimer()
+        updateNowPlayingInfo()
     }
 
     private func startTimer() {
