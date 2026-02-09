@@ -2,7 +2,7 @@
 
 A minimal macOS audio player built with Swift and SwiftUI.
 
-![Din](/meta/Screenshot.png?raw=true "Screenshot of the app")
+![Din](/meta/Screenshot.png?raw=true "Screenshot of the app"){height=270}
 
 ## Features
 
