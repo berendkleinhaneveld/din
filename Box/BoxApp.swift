@@ -78,6 +78,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
+        // Double-click on playlist row → play selected track
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            if event.clickCount == 2 {
+                // Walk up from hit view to confirm it's a table row
+                if let contentView = event.window?.contentView,
+                   let hitView = contentView.hitTest(event.locationInWindow) {
+                    var view: NSView? = hitView
+                    while let v = view {
+                        if v is NSTableRowView {
+                            Task { @MainActor in
+                                let mgr = PlaylistManager.shared
+                                if let selectedID = mgr.selection.first,
+                                   let index = mgr.tracks.firstIndex(where: { $0.id == selectedID }) {
+                                    mgr.playTrack(at: index)
+                                }
+                            }
+                            break
+                        }
+                        view = v.superview
+                    }
+                }
+            }
+            return event
+        }
+
         // Keyboard shortcuts: Space = play/pause, [ = previous, ] = next
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)

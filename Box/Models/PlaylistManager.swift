@@ -12,6 +12,7 @@ final class PlaylistManager: ObservableObject {
     @Published var currentTime: TimeInterval = 0
     @Published var volume: Float = 0.75
     @Published var repeatEnabled = false
+    @Published var selection: Set<Track.ID> = []
 
     private var player: AVAudioPlayer?
     private var timer: Timer?
@@ -157,6 +158,7 @@ final class PlaylistManager: ObservableObject {
         let currentID = currentTrack?.id
 
         tracks.removeAll { ids.contains($0.id) }
+        selection.subtract(ids)
 
         if let cid = currentID {
             if ids.contains(cid) {
@@ -178,6 +180,7 @@ final class PlaylistManager: ObservableObject {
         stop()
         tracks.removeAll()
         currentIndex = nil
+        selection.removeAll()
         saveState()
     }
 

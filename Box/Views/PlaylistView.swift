@@ -3,84 +3,118 @@ import UniformTypeIdentifiers
 
 struct PlaylistView: View {
     @ObservedObject var manager: PlaylistManager
-    @State private var selection: Set<Track.ID> = []
     @State private var isDropTargeted = false
 
     var body: some View {
-        Group {
-            if manager.tracks.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "music.note.list")
-                        .font(.system(size: 28))
-                        .foregroundStyle(.tertiary)
-                    Text("Drop audio files here")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
+        if manager.tracks.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 28))
+                    .foregroundStyle(.tertiary)
+                Text("Drop audio files here")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(.white.opacity(isDropTargeted ? 0.06 : 0))
+            )
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                loadURLs(from: providers) { urls in
+                    manager.addTracks(urls: urls, at: 0)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(selection: $selection) {
-                    ForEach(Array(manager.tracks.enumerated()), id: \.element.id) { index, track in
-                        TrackRow(
-                            track: track,
-                            index: index + 1,
-                            isPlaying: manager.currentIndex == index && manager.isPlaying,
-                            isCurrent: manager.currentIndex == index
-                        )
-                        .frame(height: 36)
-                        .tag(track.id)
-                        .listRowSeparator(.visible)
-                        .listRowSeparatorTint(Color(nsColor: .separatorColor).opacity(0.5))
-                        .background(DoubleClickHandler { manager.playTrack(at: index) })
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                manager.removeTracks(ids: [track.id])
-                                selection.remove(track.id)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                return true
+            }
+        } else {
+            List(selection: $manager.selection) {
+                ForEach(manager.tracks) { track in
+                    TrackRow(
+                        track: track,
+                        index: rowIndex(for: track),
+                        isPlaying: manager.currentIndex == rowIndex(for: track) - 1 && manager.isPlaying,
+                        isCurrent: manager.currentIndex == rowIndex(for: track) - 1
+                    )
+                    .frame(height: 36)
+                    .tag(track.id)
+                    .draggable(track.url)
+                    .listRowSeparator(.visible)
+                    .listRowSeparatorTint(Color(nsColor: .separatorColor).opacity(0.5))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            manager.removeTracks(ids: [track.id])
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .contextMenu {
+                        Button("Show in Finder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([track.url])
+                        }
+                        Divider()
+                        Button("Remove") {
+                            manager.removeTracks(ids: [track.id])
+                        }
+                        if manager.selection.count > 1, manager.selection.contains(track.id) {
+                            Button("Remove Selected (\(manager.selection.count))") {
+                                manager.removeTracks(ids: manager.selection)
                             }
                         }
-                        .contextMenu {
-                            Button("Show in Finder") {
-                                NSWorkspace.shared.activateFileViewerSelecting([track.url])
-                            }
-                            Divider()
-                            Button("Remove") {
-                                manager.removeTracks(ids: [track.id])
-                                selection.remove(track.id)
-                            }
-                            if selection.count > 1, selection.contains(track.id) {
-                                Button("Remove Selected (\(selection.count))") {
-                                    manager.removeTracks(ids: selection)
-                                    selection.removeAll()
+                    }
+                }
+                .onMove { source, destination in
+                    manager.moveTrack(from: source, to: destination)
+                }
+                .onInsert(of: [.fileURL]) { index, providers in
+                    loadURLs(from: providers) { urls in
+                        // Check if these are internal tracks being reordered
+                        let existingURLs = Set(manager.tracks.map(\.url))
+                        let reorderURLs = urls.filter { existingURLs.contains($0) }
+                        let newURLs = urls.filter { !existingURLs.contains($0) }
+
+                        if !reorderURLs.isEmpty {
+                            let reorderSet = Set(reorderURLs)
+                            let idsToMove = manager.tracks.filter { reorderSet.contains($0.url) }.map(\.id)
+                            let tracksToMove = idsToMove.compactMap { id in manager.tracks.first { $0.id == id } }
+                            let idsSet = Set(idsToMove)
+
+                            var adjustedIndex = index
+                            for i in 0..<min(index, manager.tracks.count) {
+                                if idsSet.contains(manager.tracks[i].id) {
+                                    adjustedIndex -= 1
                                 }
                             }
+
+                            let currentID = manager.currentTrack?.id
+                            manager.tracks.removeAll { idsSet.contains($0.id) }
+                            let insertAt = min(max(0, adjustedIndex), manager.tracks.count)
+                            manager.tracks.insert(contentsOf: tracksToMove, at: insertAt)
+                            if let cid = currentID {
+                                manager.currentIndex = manager.tracks.firstIndex { $0.id == cid }
+                            }
+                            manager.saveState()
+                        }
+
+                        if !newURLs.isEmpty {
+                            manager.addTracks(urls: newURLs, at: index)
                         }
                     }
-                    .onMove { source, destination in
-                        manager.moveTrack(from: source, to: destination)
-                    }
                 }
-                .listStyle(.plain)
             }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.white.opacity(isDropTargeted ? 0.06 : 0))
-        )
-        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-            handleDrop(providers)
-            return true
-        }
-        .onDeleteCommand {
-            if !selection.isEmpty {
-                manager.removeTracks(ids: selection)
-                selection.removeAll()
+            .listStyle(.plain)
+            .onDeleteCommand {
+                if !manager.selection.isEmpty {
+                    manager.removeTracks(ids: manager.selection)
+                }
             }
         }
     }
 
-    private func handleDrop(_ providers: [NSItemProvider]) {
+    private func rowIndex(for track: Track) -> Int {
+        (manager.tracks.firstIndex(of: track) ?? 0) + 1
+    }
+
+    private func loadURLs(from providers: [NSItemProvider], completion: @escaping ([URL]) -> Void) {
         var urls: [URL] = []
         let group = DispatchGroup()
         for provider in providers {
@@ -93,34 +127,7 @@ struct PlaylistView: View {
             }
         }
         group.notify(queue: .main) {
-            manager.addTracks(urls: urls)
-        }
-    }
-}
-
-// MARK: - Native double-click handler that doesn't interfere with List selection
-
-private struct DoubleClickHandler: NSViewRepresentable {
-    let action: () -> Void
-
-    func makeNSView(context: Context) -> NSView {
-        let view = DoubleClickNSView()
-        view.action = action
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        (nsView as? DoubleClickNSView)?.action = action
-    }
-}
-
-private class DoubleClickNSView: NSView {
-    var action: (() -> Void)?
-
-    override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        if event.clickCount == 2 {
-            action?()
+            completion(urls)
         }
     }
 }
