@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Box</string>
+    <string>Din</string>
     <key>CFBundleDisplayName</key>
-    <string>Box</string>
+    <string>Din</string>
     <key>CFBundleIdentifier</key>
-    <string>com.box.player</string>
+    <string>com.din.player</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>CFBundleShortVersionString</key>
@@ -15,7 +15,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>
-    <string>Box</string>
+    <string>Din</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>CFBundleDocumentTypes</key>

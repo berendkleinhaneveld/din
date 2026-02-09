@@ -2,7 +2,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 @main
-struct BoxApp: App {
+struct DinApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

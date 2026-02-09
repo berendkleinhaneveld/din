@@ -10,7 +10,7 @@ struct ControlsView: View {
         VStack(spacing: 6) {
             // Now playing info — fixed height so controls don't shift
             VStack(alignment: .leading, spacing: 1) {
-                Text(manager.currentTrack?.title ?? "Box")
+                Text(manager.currentTrack?.title ?? "Din")
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)

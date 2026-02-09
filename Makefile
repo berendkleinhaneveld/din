@@ -1,4 +1,4 @@
-APP_NAME = Box
+APP_NAME = Din
 BUILD_DIR = .build
 APP_BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
 CONTENTS = $(APP_BUNDLE)/Contents
@@ -10,12 +10,12 @@ build:
 	swift build
 
 run: build
-	.build/debug/Box
+	.build/debug/Din
 
 app: build
 	mkdir -p $(MACOS)
-	cp .build/debug/Box $(MACOS)/Box
-	cp Box/Info.plist $(CONTENTS)/Info.plist
+	cp .build/debug/Din $(MACOS)/Din
+	cp Din/Info.plist $(CONTENTS)/Info.plist
 	@echo "Built $(APP_BUNDLE)"
 	@echo "Run with: open $(APP_BUNDLE)"
 

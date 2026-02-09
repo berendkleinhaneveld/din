@@ -295,22 +295,22 @@ final class PlaylistManager: ObservableObject {
 
     func saveState() {
         let defaults = UserDefaults.standard
-        defaults.set(tracks.map { $0.url.absoluteString }, forKey: "box.playlist")
-        defaults.set(currentIndex ?? -1, forKey: "box.currentIndex")
-        defaults.set(displayTime, forKey: "box.currentTime")
-        defaults.set(Double(volume), forKey: "box.volume")
-        defaults.set(repeatEnabled, forKey: "box.repeat")
+        defaults.set(tracks.map { $0.url.absoluteString }, forKey: "din.playlist")
+        defaults.set(currentIndex ?? -1, forKey: "din.currentIndex")
+        defaults.set(displayTime, forKey: "din.currentTime")
+        defaults.set(Double(volume), forKey: "din.volume")
+        defaults.set(repeatEnabled, forKey: "din.repeat")
     }
 
     private func restoreState() {
         let defaults = UserDefaults.standard
 
-        if defaults.object(forKey: "box.volume") != nil {
-            volume = Float(defaults.double(forKey: "box.volume"))
+        if defaults.object(forKey: "din.volume") != nil {
+            volume = Float(defaults.double(forKey: "din.volume"))
         }
-        repeatEnabled = defaults.bool(forKey: "box.repeat")
+        repeatEnabled = defaults.bool(forKey: "din.repeat")
 
-        guard let urlStrings = defaults.stringArray(forKey: "box.playlist") else { return }
+        guard let urlStrings = defaults.stringArray(forKey: "din.playlist") else { return }
         let urls = urlStrings.compactMap { URL(string: $0) }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
         guard !urls.isEmpty else { return }
@@ -329,11 +329,11 @@ final class PlaylistManager: ObservableObject {
             }
         }
 
-        let savedIndex = defaults.integer(forKey: "box.currentIndex")
+        let savedIndex = defaults.integer(forKey: "din.currentIndex")
         if savedIndex >= 0, tracks.indices.contains(savedIndex) {
             currentIndex = savedIndex
         }
-        currentTime = defaults.double(forKey: "box.currentTime")
+        currentTime = defaults.double(forKey: "din.currentTime")
     }
 
     // MARK: - Media Keys
