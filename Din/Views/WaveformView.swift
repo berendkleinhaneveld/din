@@ -2,7 +2,7 @@ import SwiftUI
 
 /// A waveform progress bar rendered via Canvas.
 /// Displays vertical bars growing upward from the bottom with played/unplayed coloring.
-/// Supports tap-to-seek, drag-to-seek, and hover preview.
+/// Supports tap-to-seek, drag-to-seek, hover preview, and animated bar transitions.
 struct WaveformView: View {
     let peaks: [Float]
     let currentTime: TimeInterval
@@ -12,6 +12,11 @@ struct WaveformView: View {
     @State private var isDragging = false
     @State private var dragProgress: Double = 0
     @State private var hoverProgress: Double?
+
+    // Animation state — bars interpolate from fromPeaks to peaks
+    @State private var fromPeaks: [Float] = []
+    @State private var transitionStart: Date?
+    private let transitionDuration: TimeInterval = 0.35
 
     private var progress: Double {
         guard duration > 0 else { return 0 }
@@ -53,6 +58,17 @@ struct WaveformView: View {
                 }
             }
             .frame(height: viewHeight)
+            .onChange(of: peaks) { oldValue, newValue in
+                // Compute what's currently displayed and use as the starting point
+                if let start = transitionStart {
+                    let elapsed = Float(Date().timeIntervalSince(start))
+                    let t = easeOut(min(1, elapsed / Float(transitionDuration)))
+                    fromPeaks = interpolatePeaks(from: fromPeaks, to: oldValue, t: t)
+                } else {
+                    fromPeaks = oldValue
+                }
+                transitionStart = Date()
+            }
 
             // Time labels
             HStack {
@@ -67,9 +83,34 @@ struct WaveformView: View {
         }
     }
 
+    // MARK: - Animation Helpers
+
+    private func easeOut(_ t: Float) -> Float {
+        1 - pow(1 - t, 3)
+    }
+
+    private func interpolatePeaks(from: [Float], to: [Float], t: Float) -> [Float] {
+        let count = max(from.count, to.count)
+        guard count > 0 else { return [] }
+        return (0..<count).map { i in
+            let f = i < from.count ? from[i] : 0
+            let target = i < to.count ? to[i] : 0
+            return f + (target - f) * t
+        }
+    }
+
     // MARK: - Drawing
 
     private func drawWaveform(context: GraphicsContext, size: CGSize) {
+        // Compute animation progress
+        let animT: Float
+        if let start = transitionStart {
+            let elapsed = Float(Date().timeIntervalSince(start))
+            animT = easeOut(min(1, elapsed / Float(transitionDuration)))
+        } else {
+            animT = 1
+        }
+
         let totalBarWidth = barWidth + barGap
         let barCount = max(1, Int(size.width / totalBarWidth))
         let maxBarHeight = size.height - 1
@@ -82,7 +123,12 @@ struct WaveformView: View {
 
         for i in 0..<barCount {
             let peakIndex = peaks.isEmpty ? 0 : (i * peaks.count) / barCount
-            let peak: Float = peaks.isEmpty ? 0 : peaks[min(peakIndex, peaks.count - 1)]
+            let clampedIndex = peaks.isEmpty ? 0 : min(peakIndex, peaks.count - 1)
+
+            let targetPeak: Float = peaks.isEmpty ? 0 : peaks[clampedIndex]
+            let fromPeak: Float = clampedIndex < fromPeaks.count ? fromPeaks[clampedIndex] : 0
+            let peak = fromPeak + (targetPeak - fromPeak) * animT
+
             let amplitude = CGFloat(max(peak, 0.03))
             let barHeight = amplitude * maxBarHeight
 
@@ -98,7 +144,6 @@ struct WaveformView: View {
 
             let color: Color
             if isDragging {
-                // While dragging, show played color up to drag position
                 color = x < playheadX ? playedColor : unplayedColor
             } else if let hoverX {
                 color = barColor(
@@ -112,10 +157,26 @@ struct WaveformView: View {
             context.fill(roundedBar, with: .color(color))
         }
 
-        // Draw playhead line
+        // Draw playhead — sized to the height of the current bar + 2pt
         if duration > 0 {
-            let lineRect = CGRect(x: playheadX - 0.5, y: 0, width: 1, height: size.height)
-            context.fill(Rectangle().path(in: lineRect), with: .color(.white.opacity(0.6)))
+            let peakCount = peaks.count
+            let playheadPeakIndex = peakCount > 0 ? min(Int(progress * Double(peakCount)), peakCount - 1) : 0
+            let targetPeak: Float = peakCount > 0 ? peaks[playheadPeakIndex] : 0
+            let fromPeak: Float = playheadPeakIndex < fromPeaks.count ? fromPeaks[playheadPeakIndex] : 0
+            let peak = fromPeak + (targetPeak - fromPeak) * animT
+            let amplitude = CGFloat(max(peak, 0.03))
+            let playheadBarHeight = amplitude * maxBarHeight + 2
+
+            let playheadWidth = barWidth + 2
+            let playheadRect = CGRect(
+                x: playheadX - playheadWidth / 2,
+                y: size.height - playheadBarHeight,
+                width: playheadWidth,
+                height: playheadBarHeight
+            )
+            let playheadShape = RoundedRectangle(cornerRadius: barCornerRadius + 0.5)
+                .path(in: playheadRect)
+            context.fill(playheadShape, with: .color(.white.opacity(0.8)))
         }
     }
 
@@ -125,8 +186,6 @@ struct WaveformView: View {
         played: Color, playedLight: Color, unplayed: Color
     ) -> Color {
         if hoverX >= playheadX {
-            // Hovering ahead of playhead:
-            // [played] [playedLight between playhead..hover] [unplayed]
             if barX < playheadX {
                 return played
             } else if barX < hoverX {
@@ -135,8 +194,6 @@ struct WaveformView: View {
                 return unplayed
             }
         } else {
-            // Hovering behind playhead:
-            // [played up to hover] [playedLight between hover..playhead] [unplayed]
             if barX < hoverX {
                 return played
             } else if barX < playheadX {

@@ -431,8 +431,8 @@ final class PlaylistManager: ObservableObject {
                 self.waveformPeaks = peaks
                 self.isWaveformReady = true
 
-                // Pre-generate waveform for the next track
-                self.prefetchNextTrackWaveform()
+                // TODO: Re-enable after testing streaming generation
+                // self.prefetchNextTrackWaveform()
             } catch {
                 guard !Task.isCancelled else { return }
                 self.waveformPeaks = []
