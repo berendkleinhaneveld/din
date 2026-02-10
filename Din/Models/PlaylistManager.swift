@@ -15,6 +15,12 @@ final class PlaylistManager: ObservableObject {
     @Published var repeatEnabled = false
     @Published var selection: Set<Track.ID> = []
 
+    /// Waveform peak data for the current track. Empty array if not yet available.
+    @Published var waveformPeaks: [Float] = []
+
+    /// Whether waveform data has been generated for the current track.
+    @Published var isWaveformReady = false
+
     /// Live playback time — NOT @Published so it doesn't trigger view re-renders.
     private(set) var currentTime: TimeInterval = 0
 
@@ -41,6 +47,7 @@ final class PlaylistManager: ObservableObject {
     private var timer: Timer?
     private var tickCount = 0
     private var _suppressUndo = false
+    private var waveformTask: Task<Void, Never>?
 
     var currentTrack: Track? {
         guard let id = currentTrackID else { return nil }
@@ -332,6 +339,8 @@ final class PlaylistManager: ObservableObject {
         let savedIndex = defaults.integer(forKey: "din.currentIndex")
         if savedIndex >= 0, tracks.indices.contains(savedIndex) {
             currentIndex = savedIndex
+            // Pre-generate waveform for the restored track
+            generateWaveform(for: tracks[savedIndex].url)
         }
         currentTime = defaults.double(forKey: "din.currentTime")
     }
@@ -405,6 +414,27 @@ final class PlaylistManager: ObservableObject {
         } catch {
             isPlaying = false
         }
+        generateWaveform(for: track.url)
+    }
+
+    private func generateWaveform(for url: URL) {
+        waveformTask?.cancel()
+        waveformPeaks = []
+        isWaveformReady = false
+
+        waveformTask = Task {
+            do {
+                let peaks = try await WaveformGenerator.shared.peaks(for: url)
+                guard !Task.isCancelled else { return }
+                self.waveformPeaks = peaks
+                self.isWaveformReady = true
+            } catch {
+                guard !Task.isCancelled else { return }
+                // On failure, leave peaks empty — the view will show a fallback
+                self.waveformPeaks = []
+                self.isWaveformReady = false
+            }
+        }
     }
 
     private func stop() {
@@ -414,6 +444,8 @@ final class PlaylistManager: ObservableObject {
         currentTime = 0
         stopTimer()
         updateNowPlayingInfo()
+        waveformTask?.cancel()
+        waveformTask = nil
     }
 
     private func startTimer() {

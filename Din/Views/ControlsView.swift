@@ -76,13 +76,15 @@ struct ControlsView: View {
                 }
             }
 
-            // Progress bar — TimelineView drives updates without triggering @Published changes
-            TimelineView(.animation(minimumInterval: 0.1, paused: !manager.isPlaying)) { _ in
-                ProgressBar(
+            // Waveform progress bar — TimelineView drives updates at ~30fps
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !manager.isPlaying)) { _ in
+                WaveformView(
+                    peaks: manager.waveformPeaks,
                     currentTime: manager.displayTime,
                     duration: manager.currentTrack?.duration ?? 0,
                     onSeek: manager.seek
                 )
+                .animation(.easeInOut(duration: 0.3), value: manager.isWaveformReady)
             }
         }
         .padding(.horizontal, 12)
