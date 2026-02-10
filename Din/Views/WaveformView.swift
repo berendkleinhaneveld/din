@@ -157,11 +157,12 @@ struct WaveformView: View {
             context.fill(roundedBar, with: .color(color))
         }
 
-        // Draw playhead — sized to the height of the current bar + 2pt
+        // Draw playhead — sized to the height of the bar it sits on + 2pt
         if duration > 0 {
-            let peakCount = peaks.count
-            let playheadPeakIndex = peakCount > 0 ? min(Int(progress * Double(peakCount)), peakCount - 1) : 0
-            let targetPeak: Float = peakCount > 0 ? peaks[playheadPeakIndex] : 0
+            // Use the same bar-to-bin mapping as the bars themselves
+            let playheadBarIndex = min(Int(progress * Double(barCount)), barCount - 1)
+            let playheadPeakIndex = peaks.isEmpty ? 0 : min((playheadBarIndex * peaks.count) / barCount, peaks.count - 1)
+            let targetPeak: Float = peaks.isEmpty ? 0 : peaks[playheadPeakIndex]
             let fromPeak: Float = playheadPeakIndex < fromPeaks.count ? fromPeaks[playheadPeakIndex] : 0
             let peak = fromPeak + (targetPeak - fromPeak) * animT
             let amplitude = CGFloat(max(peak, 0.03))

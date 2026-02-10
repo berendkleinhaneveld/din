@@ -97,19 +97,31 @@ actor WaveformGenerator {
     private func decodeAndExtract(url: URL) async throws -> [Float] {
         try Task.checkCancellation()
 
-        let audioFile = try AVAudioFile(forReading: url)
-        let processingFormat = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: audioFile.processingFormat.sampleRate,
-            channels: audioFile.processingFormat.channelCount,
-            interleaved: false
-        )!
-
-        let frameCount = AVAudioFrameCount(audioFile.length)
-        guard frameCount > 0 else { return Array(repeating: 0, count: binCount) }
-
-        let buffer = AVAudioPCMBuffer(pcmFormat: processingFormat, frameCapacity: frameCount)!
-        try audioFile.read(into: buffer)
+        // Read file on a background DispatchQueue to avoid blocking the cooperative pool
+        let buffer: AVAudioPCMBuffer = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let audioFile = try AVAudioFile(forReading: url)
+                    let format = AVAudioFormat(
+                        commonFormat: .pcmFormatFloat32,
+                        sampleRate: audioFile.processingFormat.sampleRate,
+                        channels: audioFile.processingFormat.channelCount,
+                        interleaved: false
+                    )!
+                    let frameCount = AVAudioFrameCount(audioFile.length)
+                    guard frameCount > 0 else {
+                        let empty = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1)!
+                        continuation.resume(returning: empty)
+                        return
+                    }
+                    let pcmBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
+                    try audioFile.read(into: pcmBuffer)
+                    continuation.resume(returning: pcmBuffer)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
 
         try Task.checkCancellation()
 
@@ -122,61 +134,66 @@ actor WaveformGenerator {
     ) async throws -> [Float] {
         try Task.checkCancellation()
 
-        let audioFile = try AVAudioFile(forReading: url)
-        let processingFormat = AVAudioFormat(
-            commonFormat: .pcmFormatFloat32,
-            sampleRate: audioFile.processingFormat.sampleRate,
-            channels: audioFile.processingFormat.channelCount,
-            interleaved: false
-        )!
+        // Read the entire file on a background DispatchQueue so we don't
+        // block the cooperative thread pool (which would cause UI jank).
+        let buffer: AVAudioPCMBuffer = try await withCheckedThrowingContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    let audioFile = try AVAudioFile(forReading: url)
+                    let format = AVAudioFormat(
+                        commonFormat: .pcmFormatFloat32,
+                        sampleRate: audioFile.processingFormat.sampleRate,
+                        channels: audioFile.processingFormat.channelCount,
+                        interleaved: false
+                    )!
+                    let frameCount = AVAudioFrameCount(audioFile.length)
+                    let pcmBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: max(1, frameCount))!
+                    if frameCount > 0 {
+                        try audioFile.read(into: pcmBuffer)
+                    }
+                    continuation.resume(returning: pcmBuffer)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
 
-        let totalFrames = Int(audioFile.length)
-        guard totalFrames > 0 else { return Array(repeating: 0, count: binCount) }
+        try Task.checkCancellation()
 
-        let channelCount = Int(processingFormat.channelCount)
-        let framesPerBin = max(1, totalFrames / binCount)
+        let frameCount = Int(buffer.frameLength)
+        guard frameCount > 0 else { return Array(repeating: 0, count: binCount) }
+
+        let channelCount = Int(buffer.format.channelCount)
+        let framesPerBin = max(1, frameCount / binCount)
         var rawPeaks = [Float](repeating: 0, count: binCount)
         var globalMax: Float = 0
 
-        // Read in chunks — 16 chunks gives frequent progress updates
+        // Extract peaks in chunks of bins — much faster than per-frame iteration
         let chunkCount = 16
-        let framesPerChunk = max(1, totalFrames / chunkCount)
-
-        var framesRead = 0
-        let chunkBuffer = AVAudioPCMBuffer(
-            pcmFormat: processingFormat,
-            frameCapacity: AVAudioFrameCount(framesPerChunk)
-        )!
+        let binsPerChunk = max(1, binCount / chunkCount)
 
         for chunkIndex in 0..<chunkCount {
             try Task.checkCancellation()
 
-            let remaining = totalFrames - framesRead
-            guard remaining > 0 else { break }
+            let binStart = chunkIndex * binsPerChunk
+            let binEnd = min(binStart + binsPerChunk, binCount)
 
-            let framesToRead = min(framesPerChunk, remaining)
-            chunkBuffer.frameLength = 0
-            try audioFile.read(into: chunkBuffer, frameCount: AVAudioFrameCount(framesToRead))
+            for bin in binStart..<binEnd {
+                let frameStart = bin * framesPerBin
+                let frameEnd = min(frameStart + framesPerBin, frameCount)
+                guard frameStart < frameEnd else { continue }
 
-            let actualFramesRead = Int(chunkBuffer.frameLength)
-            guard actualFramesRead > 0 else { break }
-
-            // Compute peaks for bins covered by this chunk
-            for frame in 0..<actualFramesRead {
-                let globalFrame = framesRead + frame
-                let bin = min(globalFrame / framesPerBin, binCount - 1)
-
+                var maxVal: Float = 0
                 for ch in 0..<channelCount {
-                    guard let channelData = chunkBuffer.floatChannelData?[ch] else { continue }
-                    let absVal = abs(channelData[frame])
-                    if absVal > rawPeaks[bin] {
-                        rawPeaks[bin] = absVal
-                        if absVal > globalMax { globalMax = absVal }
+                    guard let channelData = buffer.floatChannelData?[ch] else { continue }
+                    for frame in frameStart..<frameEnd {
+                        let absVal = abs(channelData[frame])
+                        if absVal > maxVal { maxVal = absVal }
                     }
                 }
+                rawPeaks[bin] = maxVal
+                if maxVal > globalMax { globalMax = maxVal }
             }
-
-            framesRead += actualFramesRead
 
             // Publish normalized partial result
             if globalMax > 0 {
@@ -184,11 +201,6 @@ actor WaveformGenerator {
                 await onProgress(normalized)
             } else {
                 await onProgress(rawPeaks)
-            }
-
-            // Yield to let other tasks run
-            if chunkIndex < chunkCount - 1 {
-                await Task.yield()
             }
         }
 
