@@ -76,15 +76,14 @@ struct ControlsView: View {
                 }
             }
 
-            // Waveform progress bar — TimelineView drives updates at ~30fps
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !manager.isPlaying)) { _ in
+            // Waveform progress bar — TimelineView always runs so seek-while-paused updates visually
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { _ in
                 WaveformView(
                     peaks: manager.waveformPeaks,
                     currentTime: manager.displayTime,
                     duration: manager.currentTrack?.duration ?? 0,
                     onSeek: manager.seek
                 )
-                .animation(.easeInOut(duration: 0.3), value: manager.isWaveformReady)
             }
         }
         .padding(.horizontal, 12)

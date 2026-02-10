@@ -424,16 +424,30 @@ final class PlaylistManager: ObservableObject {
 
         waveformTask = Task {
             do {
-                let peaks = try await WaveformGenerator.shared.peaks(for: url)
+                let peaks = try await WaveformGenerator.shared.peaksStreaming(for: url) { partial in
+                    self.waveformPeaks = partial
+                }
                 guard !Task.isCancelled else { return }
                 self.waveformPeaks = peaks
                 self.isWaveformReady = true
+
+                // Pre-generate waveform for the next track
+                self.prefetchNextTrackWaveform()
             } catch {
                 guard !Task.isCancelled else { return }
-                // On failure, leave peaks empty — the view will show a fallback
                 self.waveformPeaks = []
                 self.isWaveformReady = false
             }
+        }
+    }
+
+    private func prefetchNextTrackWaveform() {
+        guard let idx = currentIndex else { return }
+        let nextIndex = idx + 1
+        guard nextIndex < tracks.count else { return }
+        let nextURL = tracks[nextIndex].url
+        Task {
+            await WaveformGenerator.shared.prefetch(url: nextURL)
         }
     }
 

@@ -21,16 +21,12 @@ actor WaveformGenerator {
     /// Generate or load cached waveform peaks for the given audio file.
     /// Returns an array of `binCount` floats in 0.0–1.0.
     func peaks(for url: URL) async throws -> [Float] {
-        // Cancel any existing in-flight task for a different URL
-        // (rapid track skipping)
         cancelAll(except: url)
 
-        // Check cache first
         if let cached = loadCache(for: url) {
             return cached
         }
 
-        // If there's already an in-flight task for this URL, await it
         if let existing = inFlightTasks[url] {
             return try await existing.value
         }
@@ -51,6 +47,41 @@ actor WaveformGenerator {
             inFlightTasks[url] = nil
             throw error
         }
+    }
+
+    /// Generate waveform peaks with streaming progress updates.
+    /// Calls `onProgress` on the main actor after each chunk is decoded.
+    /// If cached, calls `onProgress` once with the full result.
+    func peaksStreaming(
+        for url: URL,
+        onProgress: @MainActor @Sendable ([Float]) -> Void
+    ) async throws -> [Float] {
+        cancelAll(except: url)
+
+        if let cached = loadCache(for: url) {
+            await onProgress(cached)
+            return cached
+        }
+
+        let peaks = try await decodeAndExtractStreaming(url: url, onProgress: onProgress)
+        saveCache(peaks, for: url)
+        return peaks
+    }
+
+    /// Pre-generate and cache waveform for a URL without returning the result.
+    /// Does nothing if already cached or in-flight.
+    func prefetch(url: URL) async {
+        if loadCache(for: url) != nil { return }
+        if inFlightTasks[url] != nil { return }
+
+        let task = Task<[Float], Error> {
+            let peaks = try await decodeAndExtract(url: url)
+            saveCache(peaks, for: url)
+            return peaks
+        }
+        inFlightTasks[url] = task
+        _ = try? await task.value
+        inFlightTasks[url] = nil
     }
 
     /// Cancel all in-flight generation tasks except for the given URL.
@@ -83,6 +114,92 @@ actor WaveformGenerator {
         try Task.checkCancellation()
 
         return extractPeaks(from: buffer)
+    }
+
+    private func decodeAndExtractStreaming(
+        url: URL,
+        onProgress: @MainActor @Sendable ([Float]) -> Void
+    ) async throws -> [Float] {
+        try Task.checkCancellation()
+
+        let audioFile = try AVAudioFile(forReading: url)
+        let processingFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: audioFile.processingFormat.sampleRate,
+            channels: audioFile.processingFormat.channelCount,
+            interleaved: false
+        )!
+
+        let totalFrames = Int(audioFile.length)
+        guard totalFrames > 0 else { return Array(repeating: 0, count: binCount) }
+
+        let channelCount = Int(processingFormat.channelCount)
+        let framesPerBin = max(1, totalFrames / binCount)
+        var rawPeaks = [Float](repeating: 0, count: binCount)
+        var globalMax: Float = 0
+
+        // Read in chunks — 16 chunks gives frequent progress updates
+        let chunkCount = 16
+        let framesPerChunk = max(1, totalFrames / chunkCount)
+
+        var framesRead = 0
+        let chunkBuffer = AVAudioPCMBuffer(
+            pcmFormat: processingFormat,
+            frameCapacity: AVAudioFrameCount(framesPerChunk)
+        )!
+
+        for chunkIndex in 0..<chunkCount {
+            try Task.checkCancellation()
+
+            let remaining = totalFrames - framesRead
+            guard remaining > 0 else { break }
+
+            let framesToRead = min(framesPerChunk, remaining)
+            chunkBuffer.frameLength = 0
+            try audioFile.read(into: chunkBuffer, frameCount: AVAudioFrameCount(framesToRead))
+
+            let actualFramesRead = Int(chunkBuffer.frameLength)
+            guard actualFramesRead > 0 else { break }
+
+            // Compute peaks for bins covered by this chunk
+            for frame in 0..<actualFramesRead {
+                let globalFrame = framesRead + frame
+                let bin = min(globalFrame / framesPerBin, binCount - 1)
+
+                for ch in 0..<channelCount {
+                    guard let channelData = chunkBuffer.floatChannelData?[ch] else { continue }
+                    let absVal = abs(channelData[frame])
+                    if absVal > rawPeaks[bin] {
+                        rawPeaks[bin] = absVal
+                        if absVal > globalMax { globalMax = absVal }
+                    }
+                }
+            }
+
+            framesRead += actualFramesRead
+
+            // Publish normalized partial result
+            if globalMax > 0 {
+                let normalized = rawPeaks.map { $0 / globalMax }
+                await onProgress(normalized)
+            } else {
+                await onProgress(rawPeaks)
+            }
+
+            // Yield to let other tasks run
+            if chunkIndex < chunkCount - 1 {
+                await Task.yield()
+            }
+        }
+
+        // Final normalization
+        if globalMax > 0 {
+            for i in 0..<rawPeaks.count {
+                rawPeaks[i] /= globalMax
+            }
+        }
+
+        return rawPeaks
     }
 
     private func extractPeaks(from buffer: AVAudioPCMBuffer) -> [Float] {
@@ -132,7 +249,6 @@ actor WaveformGenerator {
         } else {
             modified = "0"
         }
-        // Simple hash of path + modified date
         let combined = "\(path)|\(modified)"
         var hash: UInt64 = 5381
         for byte in combined.utf8 {

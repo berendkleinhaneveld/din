@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// A SoundCloud-style waveform progress bar rendered via Canvas.
-/// Displays vertical bars mirrored around a center line, with played/unplayed coloring.
-/// Supports tap-to-seek and drag-to-seek.
+/// A waveform progress bar rendered via Canvas.
+/// Displays vertical bars growing upward from the bottom with played/unplayed coloring.
+/// Supports tap-to-seek, drag-to-seek, and hover preview.
 struct WaveformView: View {
     let peaks: [Float]
     let currentTime: TimeInterval
@@ -11,6 +11,7 @@ struct WaveformView: View {
 
     @State private var isDragging = false
     @State private var dragProgress: Double = 0
+    @State private var hoverProgress: Double?
 
     private var progress: Double {
         guard duration > 0 else { return 0 }
@@ -20,7 +21,7 @@ struct WaveformView: View {
     private let barWidth: CGFloat = 2
     private let barGap: CGFloat = 1
     private let barCornerRadius: CGFloat = 1
-    private let viewHeight: CGFloat = 50
+    private let viewHeight: CGFloat = 32
 
     var body: some View {
         VStack(spacing: 2) {
@@ -42,6 +43,14 @@ struct WaveformView: View {
                             isDragging = false
                         }
                 )
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let location):
+                        hoverProgress = min(max(0, location.x / width), 1)
+                    case .ended:
+                        hoverProgress = nil
+                    }
+                }
             }
             .frame(height: viewHeight)
 
@@ -63,30 +72,43 @@ struct WaveformView: View {
     private func drawWaveform(context: GraphicsContext, size: CGSize) {
         let totalBarWidth = barWidth + barGap
         let barCount = max(1, Int(size.width / totalBarWidth))
-        let midY = size.height / 2
-        let maxBarHeight = midY - 1
+        let maxBarHeight = size.height - 1
 
         let playedColor = Color.accentColor
+        let playedLightColor = Color.accentColor.opacity(0.45)
         let unplayedColor = Color.white.opacity(0.25)
         let playheadX = size.width * progress
+        let hoverX = hoverProgress.map { size.width * $0 }
 
         for i in 0..<barCount {
             let peakIndex = peaks.isEmpty ? 0 : (i * peaks.count) / barCount
             let peak: Float = peaks.isEmpty ? 0 : peaks[min(peakIndex, peaks.count - 1)]
             let amplitude = CGFloat(max(peak, 0.03))
-            let halfHeight = amplitude * maxBarHeight
+            let barHeight = amplitude * maxBarHeight
 
             let x = CGFloat(i) * totalBarWidth
             let barRect = CGRect(
                 x: x,
-                y: midY - halfHeight,
+                y: size.height - barHeight,
                 width: barWidth,
-                height: halfHeight * 2
+                height: barHeight
             )
             let roundedBar = RoundedRectangle(cornerRadius: barCornerRadius)
                 .path(in: barRect)
 
-            let color = x < playheadX ? playedColor : unplayedColor
+            let color: Color
+            if isDragging {
+                // While dragging, show played color up to drag position
+                color = x < playheadX ? playedColor : unplayedColor
+            } else if let hoverX {
+                color = barColor(
+                    barX: x, playheadX: playheadX, hoverX: hoverX,
+                    played: playedColor, playedLight: playedLightColor, unplayed: unplayedColor
+                )
+            } else {
+                color = x < playheadX ? playedColor : unplayedColor
+            }
+
             context.fill(roundedBar, with: .color(color))
         }
 
@@ -94,6 +116,34 @@ struct WaveformView: View {
         if duration > 0 {
             let lineRect = CGRect(x: playheadX - 0.5, y: 0, width: 1, height: size.height)
             context.fill(Rectangle().path(in: lineRect), with: .color(.white.opacity(0.6)))
+        }
+    }
+
+    /// Determine bar color based on hover position relative to the playhead.
+    private func barColor(
+        barX: CGFloat, playheadX: CGFloat, hoverX: CGFloat,
+        played: Color, playedLight: Color, unplayed: Color
+    ) -> Color {
+        if hoverX >= playheadX {
+            // Hovering ahead of playhead:
+            // [played] [playedLight between playhead..hover] [unplayed]
+            if barX < playheadX {
+                return played
+            } else if barX < hoverX {
+                return playedLight
+            } else {
+                return unplayed
+            }
+        } else {
+            // Hovering behind playhead:
+            // [played up to hover] [playedLight between hover..playhead] [unplayed]
+            if barX < hoverX {
+                return played
+            } else if barX < playheadX {
+                return playedLight
+            } else {
+                return unplayed
+            }
         }
     }
 
