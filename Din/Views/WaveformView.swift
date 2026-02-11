@@ -12,6 +12,7 @@ struct WaveformView: View {
     @State private var isDragging = false
     @State private var dragProgress: Double = 0
     @State private var hoverProgress: Double?
+    @State private var viewWidth: CGFloat = 1
 
     // Animation state — bars interpolate from fromPeaks to peaks
     @State private var fromPeaks: [Float] = []
@@ -30,34 +31,38 @@ struct WaveformView: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            GeometryReader { geo in
-                let width = geo.size.width
-                Canvas { context, size in
-                    drawWaveform(context: context, size: size)
-                }
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            isDragging = true
-                            dragProgress = min(max(0, value.location.x / width), 1)
-                        }
-                        .onEnded { value in
-                            let finalProgress = min(max(0, value.location.x / width), 1)
-                            onSeek(finalProgress * duration)
-                            isDragging = false
-                        }
-                )
-                .onContinuousHover { phase in
-                    switch phase {
-                    case .active(let location):
-                        hoverProgress = min(max(0, location.x / width), 1)
-                    case .ended:
-                        hoverProgress = nil
-                    }
-                }
+            Canvas { context, size in
+                drawWaveform(context: context, size: size)
             }
             .frame(height: viewHeight)
+            .contentShape(Rectangle())
+            .background(
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { viewWidth = geo.size.width }
+                        .onChange(of: geo.size.width) { _, new in viewWidth = new }
+                }
+            )
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        isDragging = true
+                        dragProgress = min(max(0, value.location.x / viewWidth), 1)
+                    }
+                    .onEnded { value in
+                        let finalProgress = min(max(0, value.location.x / viewWidth), 1)
+                        onSeek(finalProgress * duration)
+                        isDragging = false
+                    }
+            )
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location):
+                    hoverProgress = min(max(0, location.x / viewWidth), 1)
+                case .ended:
+                    hoverProgress = nil
+                }
+            }
             .onAppear {
                 // If peaks are already loaded (e.g. from cache at startup),
                 // animate them in from zero once the window is visible.
@@ -72,6 +77,9 @@ struct WaveformView: View {
                     let elapsed = Float(Date().timeIntervalSince(start))
                     let t = easeOut(min(1, elapsed / Float(transitionDuration)))
                     fromPeaks = interpolatePeaks(from: fromPeaks, to: oldValue, t: t)
+                } else if oldValue.isEmpty && !newValue.isEmpty {
+                    // First load — animate from zero
+                    fromPeaks = Array(repeating: 0, count: newValue.count)
                 } else {
                     fromPeaks = oldValue
                 }
@@ -167,7 +175,6 @@ struct WaveformView: View {
 
         // Draw playhead — sized to the height of the bar it sits on + 2pt
         if duration > 0 {
-            // Use the same bar-to-bin mapping as the bars themselves
             let playheadBarIndex = min(Int(progress * Double(barCount)), barCount - 1)
             let playheadPeakIndex = peaks.isEmpty ? 0 : min((playheadBarIndex * peaks.count) / barCount, peaks.count - 1)
             let targetPeak: Float = peaks.isEmpty ? 0 : peaks[playheadPeakIndex]
