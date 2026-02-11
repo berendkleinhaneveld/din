@@ -76,8 +76,9 @@ struct ControlsView: View {
                 }
             }
 
-            // Waveform progress bar — TimelineView always runs so seek-while-paused updates visually
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { _ in
+            // Waveform progress bar — .periodic ensures continuous redraws for bar
+            // transition animations (the .animation schedule pauses when idle)
+            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { _ in
                 WaveformView(
                     peaks: manager.waveformPeaks,
                     currentTime: manager.displayTime,
