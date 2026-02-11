@@ -177,7 +177,8 @@ struct WaveformView: View {
         // Draw playhead — sized to the height of the bar it sits on + 2pt
         if duration > 0 {
             let playheadBarIndex = min(Int(progress * Double(barCount)), barCount - 1)
-            let playheadPeakIndex = peaks.isEmpty ? 0 : min((playheadBarIndex * peaks.count) / barCount, peaks.count - 1)
+            let playheadPeakIndex =
+                peaks.isEmpty ? 0 : min((playheadBarIndex * peaks.count) / barCount, peaks.count - 1)
             let targetPeak: Float = peaks.isEmpty ? 0 : peaks[playheadPeakIndex]
             let fromPeak: Float = playheadPeakIndex < fromPeaks.count ? fromPeaks[playheadPeakIndex] : 0
             let peak = fromPeak + (targetPeak - fromPeak) * animT
