@@ -76,14 +76,15 @@ struct ControlsView: View {
                 }
             }
 
-            // Waveform progress bar — .periodic ensures continuous redraws for bar
-            // transition animations (the .animation schedule pauses when idle)
-            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { _ in
+            // Waveform progress bar — pass context.date so the Canvas
+            // redraws each tick (SwiftUI skips redraws when no props change)
+            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
                 WaveformView(
                     peaks: manager.waveformPeaks,
                     currentTime: manager.displayTime,
                     duration: manager.currentTrack?.duration ?? 0,
-                    onSeek: manager.seek
+                    onSeek: manager.seek,
+                    now: context.date
                 )
             }
         }

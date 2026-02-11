@@ -8,6 +8,7 @@ struct WaveformView: View {
     let currentTime: TimeInterval
     let duration: TimeInterval
     let onSeek: (TimeInterval) -> Void
+    let now: Date
 
     @State private var isDragging = false
     @State private var dragProgress: Double = 0
@@ -74,7 +75,7 @@ struct WaveformView: View {
             .onChange(of: peaks) { oldValue, newValue in
                 // Compute what's currently displayed and use as the starting point
                 if let start = transitionStart {
-                    let elapsed = Float(Date().timeIntervalSince(start))
+                    let elapsed = Float(now.timeIntervalSince(start))
                     let t = easeOut(min(1, elapsed / Float(transitionDuration)))
                     fromPeaks = interpolatePeaks(from: fromPeaks, to: oldValue, t: t)
                 } else if oldValue.isEmpty && !newValue.isEmpty {
@@ -121,7 +122,7 @@ struct WaveformView: View {
         // Compute animation progress
         let animT: Float
         if let start = transitionStart {
-            let elapsed = Float(Date().timeIntervalSince(start))
+            let elapsed = Float(now.timeIntervalSince(start))
             animT = easeOut(min(1, elapsed / Float(transitionDuration)))
         } else {
             animT = 1
