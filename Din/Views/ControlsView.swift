@@ -41,6 +41,7 @@ struct ControlsView: View {
                     Button(action: manager.togglePlayPause) {
                         Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 18))
+                            .frame(width: 24, height: 24)
                     }
                     .buttonStyle(.plain)
                     .disabled(!manager.hasContent)
