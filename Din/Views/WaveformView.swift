@@ -60,9 +60,10 @@ struct WaveformView: View {
             .frame(height: viewHeight)
             .onAppear {
                 // If peaks are already loaded (e.g. from cache at startup),
-                // skip the animation and show full height immediately.
+                // animate them in from zero once the window is visible.
                 if !peaks.isEmpty {
-                    fromPeaks = peaks
+                    fromPeaks = Array(repeating: 0, count: peaks.count)
+                    transitionStart = Date()
                 }
             }
             .onChange(of: peaks) { oldValue, newValue in
