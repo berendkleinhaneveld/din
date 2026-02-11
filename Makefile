@@ -24,7 +24,7 @@ lint:
 	swift format lint --strict --recursive --parallel Din/
 
 format:
-	swift format lint --strict --recursive --parallel Din/
+	swift format --in-place --recursive --parallel Din/
 
 clean:
 	swift package clean

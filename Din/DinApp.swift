@@ -39,6 +39,20 @@ struct DinApp: App {
                 }
                 .keyboardShortcut("l")
             }
+
+            CommandMenu("Playback") {
+                Button("Volume Up") {
+                    let mgr = PlaylistManager.shared
+                    mgr.setVolume(min(1, mgr.volume + 0.1))
+                }
+                .keyboardShortcut("=", modifiers: .command)
+
+                Button("Volume Down") {
+                    let mgr = PlaylistManager.shared
+                    mgr.setVolume(max(0, mgr.volume - 0.1))
+                }
+                .keyboardShortcut("-", modifiers: .command)
+            }
         }
     }
 

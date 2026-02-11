@@ -41,6 +41,7 @@ struct ControlsView: View {
                     Button(action: manager.togglePlayPause) {
                         Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 18))
+                            .frame(width: 24, height: 24)
                     }
                     .buttonStyle(.plain)
                     .disabled(!manager.hasContent)
@@ -76,12 +77,15 @@ struct ControlsView: View {
                 }
             }
 
-            // Progress bar — TimelineView drives updates without triggering @Published changes
-            TimelineView(.animation(minimumInterval: 0.1, paused: !manager.isPlaying)) { _ in
-                ProgressBar(
+            // Waveform progress bar — pass context.date so the Canvas
+            // redraws each tick (SwiftUI skips redraws when no props change)
+            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
+                WaveformView(
+                    peaks: manager.waveformPeaks,
                     currentTime: manager.displayTime,
                     duration: manager.currentTrack?.duration ?? 0,
-                    onSeek: manager.seek
+                    onSeek: manager.seek,
+                    now: context.date
                 )
             }
         }
