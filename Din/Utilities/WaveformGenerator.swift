@@ -169,7 +169,7 @@ actor WaveformGenerator {
         var globalMax: Float = 0
 
         // Extract peaks in chunks of bins — much faster than per-frame iteration
-        let chunkCount = 16
+        let chunkCount = 64
         let binsPerChunk = max(1, binCount / chunkCount)
 
         for chunkIndex in 0..<chunkCount {
