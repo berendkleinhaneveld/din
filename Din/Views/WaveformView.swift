@@ -58,6 +58,13 @@ struct WaveformView: View {
                 }
             }
             .frame(height: viewHeight)
+            .onAppear {
+                // If peaks are already loaded (e.g. from cache at startup),
+                // skip the animation and show full height immediately.
+                if !peaks.isEmpty {
+                    fromPeaks = peaks
+                }
+            }
             .onChange(of: peaks) { oldValue, newValue in
                 // Compute what's currently displayed and use as the starting point
                 if let start = transitionStart {
