@@ -287,6 +287,11 @@ final class PlaylistManager: ObservableObject {
         panel.allowsMultipleSelection = false
         panel.allowedContentTypes = [UTType(filenameExtension: "m3u8") ?? .plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        loadPlaylistFromURL(url, replace: replace)
+        RecentItems.shared.addPlaylist(url)
+    }
+
+    func loadPlaylistFromURL(_ url: URL, replace: Bool) {
         guard let contents = try? String(contentsOf: url, encoding: .utf8) else { return }
         let baseURL = url.deletingLastPathComponent()
         let urls = M3U8.parse(contents: contents, relativeTo: baseURL)

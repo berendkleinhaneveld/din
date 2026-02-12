@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 @main
 struct DinApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var recentItems = RecentItems.shared
 
     var body: some Scene {
         WindowGroup {
@@ -38,6 +39,30 @@ struct DinApp: App {
                     PlaylistManager.shared.loadPlaylistFromFile(replace: true)
                 }
                 .keyboardShortcut("l")
+
+                Divider()
+
+                Menu("Open Recent") {
+                    ForEach(recentItems.recentFiles, id: \.self) { path in
+                        Button(RecentItems.displayName(for: path)) {
+                            Self.openRecentFile(path: path)
+                        }
+                    }
+                    if !recentItems.recentFiles.isEmpty && !recentItems.recentPlaylists.isEmpty {
+                        Divider()
+                    }
+                    ForEach(recentItems.recentPlaylists, id: \.self) { path in
+                        Button(RecentItems.displayName(for: path)) {
+                            Self.openRecentPlaylist(path: path)
+                        }
+                    }
+                    if !recentItems.recentFiles.isEmpty || !recentItems.recentPlaylists.isEmpty {
+                        Divider()
+                    }
+                    Button("Clear Menu") {
+                        RecentItems.shared.clearAll()
+                    }
+                }
             }
 
             CommandMenu("Playback") {
@@ -63,17 +88,51 @@ struct DinApp: App {
         panel.allowsMultipleSelection = true
         panel.allowedContentTypes = [.audio]
         guard panel.runModal() == .OK else { return }
+        for url in panel.urls {
+            RecentItems.shared.addFile(url)
+        }
         if replace {
             PlaylistManager.shared.replacePlaylist(urls: panel.urls)
         } else {
             PlaylistManager.shared.addTracks(urls: panel.urls)
         }
     }
+
+    static func openRecentFile(path: String) {
+        guard FileManager.default.fileExists(atPath: path) else {
+            let alert = NSAlert()
+            alert.messageText = "File Not Found"
+            alert.informativeText = "The item at \"\(RecentItems.displayName(for: path))\" can't be found."
+            alert.alertStyle = .warning
+            alert.runModal()
+            RecentItems.shared.remove(path)
+            return
+        }
+        let url = URL(fileURLWithPath: path)
+        PlaylistManager.shared.replacePlaylist(urls: [url])
+    }
+
+    static func openRecentPlaylist(path: String) {
+        guard FileManager.default.fileExists(atPath: path) else {
+            let alert = NSAlert()
+            alert.messageText = "File Not Found"
+            alert.informativeText = "The item at \"\(RecentItems.displayName(for: path))\" can't be found."
+            alert.alertStyle = .warning
+            alert.runModal()
+            RecentItems.shared.remove(path)
+            return
+        }
+        let url = URL(fileURLWithPath: path)
+        PlaylistManager.shared.loadPlaylistFromURL(url, replace: true)
+    }
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ application: NSApplication, open urls: [URL]) {
         Task { @MainActor in
+            for url in urls {
+                RecentItems.shared.addFile(url)
+            }
             PlaylistManager.shared.replacePlaylist(urls: urls)
             NSApp.activate(ignoringOtherApps: true)
         }
