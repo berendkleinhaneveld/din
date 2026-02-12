@@ -1,4 +1,4 @@
-# <img src="meta/icon.png" width="28" alt="Din icon"> Din
+# Din <img src="meta/icon.png" width="64" alt="Din icon">
 
 A minimal macOS audio player.
 
