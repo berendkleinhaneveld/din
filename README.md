@@ -1,13 +1,17 @@
-# Din
+# <img src="scripts/build/icon_1024.png" width="28" alt="Din icon"> Din
 
-A minimal macOS audio player built with Swift and SwiftUI.
+A minimal macOS audio player.
+
+**[Download latest release](https://github.com/berendkleinhaneveld/din/releases/latest)**
 
 ![Din](/meta/Screenshot.png?raw=true "Screenshot of the app")
 
 ## Features
 
 - Drag-and-drop or open audio files (MP3, M4A, AIFF, WAV, FLAC)
+- Waveform visualization with playback progress
 - M3U8 playlist save/load
+- Open Recent menu for quick access to previous files and playlists
 - Media key support (play/pause, next, previous)
 - Undo/redo for playlist changes
 - Lightweight — no external dependencies
@@ -15,7 +19,17 @@ A minimal macOS audio player built with Swift and SwiftUI.
 ## Requirements
 
 - macOS 14+
-- Swift 5.9+
+
+## Keyboard Shortcuts
+
+| Key         | Action                |
+| ----------- | --------------------- |
+| Space       | Play / Pause          |
+| `[` / `]`   | Previous / Next track |
+| `{` / `}`   | Skip back / forward   |
+| Enter       | Play selected         |
+| Cmd+O       | Open files            |
+| Cmd+Shift+O | Append files          |
 
 ## Build
 
@@ -29,18 +43,3 @@ make run
 # Build .app bundle
 make app
 ```
-
-## Keyboard Shortcuts
-
-| Key         | Action                |
-| ----------- | --------------------- |
-| Space       | Play / Pause          |
-| `[` / `]`   | Previous / Next track |
-| `{` / `}`   | Skip back / forward   |
-| Enter       | Play selected         |
-| Cmd+O       | Open files            |
-| Cmd+Shift+O | Append files          |
-
-## License
-
-[MIT](LICENSE)
