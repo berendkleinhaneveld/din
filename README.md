@@ -1,9 +1,5 @@
 # Din 
 
-<p align="center">
-  <img src="meta/icon.png" width="256" alt="Din icon">
-</p>
-
 A minimal macOS audio player.
 
 ![Din](/meta/Screenshot.png?raw=true "Screenshot of the app")
