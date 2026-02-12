@@ -1,10 +1,14 @@
-# Din <img src="meta/icon.png" width="64" alt="Din icon">
+# Din 
+
+<p align="center">
+  <img src="meta/icon.png" width="256" alt="Din icon">
+</p>
 
 A minimal macOS audio player.
 
-**[Download latest release](https://github.com/berendkleinhaneveld/din/releases/latest)**
-
 ![Din](/meta/Screenshot.png?raw=true "Screenshot of the app")
+
+Download latest release **[here](https://github.com/berendkleinhaneveld/din/releases/latest)**
 
 ## Features
 
