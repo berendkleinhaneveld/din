@@ -26,9 +26,9 @@ scripts/generate_assets.sh     # converts PNG → Din/Assets/Din.icns via sips +
 
 ## Architecture
 
-**Single-singleton model:** `PlaylistManager.shared` is the central `@MainActor ObservableObject` that owns all state — playlist, playback (via `AVAudioPlayer`), persistence (`UserDefaults`), undo, and macOS media key integration (`MPRemoteCommandCenter`).
+**Single-singleton model:** `PlaylistManager.shared` is the central `@MainActor ObservableObject` that owns all state — playlist, playback (via `AVQueuePlayer` for gapless playback), persistence (`UserDefaults`), undo, and macOS media key integration (`MPRemoteCommandCenter`).
 
-**Performance pattern:** `currentTime` is intentionally NOT `@Published` to avoid re-rendering the entire view tree every 0.25s. Instead, `ControlsView` uses `TimelineView(.animation)` to poll `displayTime` (which reads directly from `AVAudioPlayer.currentTime`) only for the progress bar.
+**Performance pattern:** `currentTime` is intentionally NOT `@Published` to avoid re-rendering the entire view tree every 0.25s. Instead, `ControlsView` uses `TimelineView(.animation)` to poll `displayTime` (which reads directly from `AVQueuePlayer.currentTime()`) only for the progress bar.
 
 **Key files:**
 - `Din/DinApp.swift` — App entry point, `NSOpenPanel` file handling, `AppDelegate` with keyboard shortcuts (space, `[]`, `{}`, enter) and double-click-to-play via `NSEvent` monitors
