@@ -27,7 +27,7 @@ struct WaveformView: View {
 
     private let barWidth: CGFloat = 2
     private let barGap: CGFloat = 1
-    private let barCornerRadius: CGFloat = 1
+    private let barCornerRadius: CGFloat = 0
     private let viewHeight: CGFloat = 32
 
     var body: some View {
@@ -168,34 +168,20 @@ struct WaveformView: View {
                     played: playedColor, playedLight: playedLightColor, unplayed: unplayedColor
                 )
             } else {
-                color = x < playheadX ? playedColor : unplayedColor
+                let playheadBinIndex = min(Int(progress * Double(barCount)), barCount - 1)
+                if i < playheadBinIndex {
+                    color = playedColor
+                } else if i > playheadBinIndex {
+                    color = unplayedColor
+                } else {
+                    let binFraction = (progress * Double(barCount)) - Double(playheadBinIndex)
+                    color = blend(unplayedColor, playedColor, fraction: binFraction)
+                }
             }
 
             context.fill(roundedBar, with: .color(color))
         }
 
-        // Draw playhead — sized to the height of the bar it sits on + 2pt
-        if duration > 0 {
-            let playheadBarIndex = min(Int(progress * Double(barCount)), barCount - 1)
-            let playheadPeakIndex =
-                peaks.isEmpty ? 0 : min((playheadBarIndex * peaks.count) / barCount, peaks.count - 1)
-            let targetPeak: Float = peaks.isEmpty ? 0 : peaks[playheadPeakIndex]
-            let fromPeak: Float = playheadPeakIndex < fromPeaks.count ? fromPeaks[playheadPeakIndex] : 0
-            let peak = fromPeak + (targetPeak - fromPeak) * animT
-            let amplitude = CGFloat(max(peak, 0.03))
-            let playheadBarHeight = amplitude * maxBarHeight + 2
-
-            let playheadWidth = barWidth + 2
-            let playheadRect = CGRect(
-                x: playheadX - playheadWidth / 2,
-                y: size.height - playheadBarHeight,
-                width: playheadWidth,
-                height: playheadBarHeight
-            )
-            let playheadShape = RoundedRectangle(cornerRadius: barCornerRadius + 0.5)
-                .path(in: playheadRect)
-            context.fill(playheadShape, with: .color(.white.opacity(0.8)))
-        }
     }
 
     /// Determine bar color based on hover position relative to the playhead.
@@ -223,6 +209,29 @@ struct WaveformView: View {
     }
 
     // MARK: - Helpers
+
+    /// Linearly interpolate between two colors.
+    private func blend(_ c1: Color, _ c2: Color, fraction: Double) -> Color {
+        let f = min(max(fraction, 0), 1)
+        let r1 = NSColor(c1).usingColorSpace(.sRGB) ?? NSColor(c1)
+        let r2 = NSColor(c2).usingColorSpace(.sRGB) ?? NSColor(c2)
+        var r1r: CGFloat = 0
+        var r1g: CGFloat = 0
+        var r1b: CGFloat = 0
+        var r1a: CGFloat = 0
+        var r2r: CGFloat = 0
+        var r2g: CGFloat = 0
+        var r2b: CGFloat = 0
+        var r2a: CGFloat = 0
+        r1.getRed(&r1r, green: &r1g, blue: &r1b, alpha: &r1a)
+        r2.getRed(&r2r, green: &r2g, blue: &r2b, alpha: &r2a)
+        return Color(
+            red: r1r + (r2r - r1r) * f,
+            green: r1g + (r2g - r1g) * f,
+            blue: r1b + (r2b - r1b) * f,
+            opacity: r1a + (r2a - r1a) * f
+        )
+    }
 
     private func formatTime(_ time: TimeInterval) -> String {
         guard time.isFinite, time >= 0 else { return "0:00" }
