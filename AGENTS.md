@@ -40,3 +40,7 @@ scripts/generate_assets.sh     # converts PNG → Din/Assets/Din.icns via sips +
 **Drag & drop:** Supported in both `ControlsView` (replaces playlist) and `PlaylistView` (adds to playlist, supports positional insert via `onInsert`).
 
 **Persistence:** Playlist URLs, current track index, playback position, volume, and repeat state are saved to `UserDefaults` with `Din.*` keys. State auto-saves every 5 seconds during playback and on app termination.
+
+## Checklist
+
+When implementing new features or making significant changes, update the feature list in `README.md` to keep it in sync with the actual capabilities of the app.
