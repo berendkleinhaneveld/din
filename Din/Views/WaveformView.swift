@@ -10,6 +10,8 @@ struct WaveformView: View {
     let onSeek: (TimeInterval) -> Void
     let now: Date
 
+    @Environment(\.colorScheme) private var colorScheme
+
     @State private var isDragging = false
     @State private var dragProgress: Double = 0
     @State private var hoverProgress: Double?
@@ -134,7 +136,7 @@ struct WaveformView: View {
 
         let playedColor = Color.accentColor
         let playedLightColor = Color.accentColor.opacity(0.45)
-        let unplayedColor = Color.white.opacity(0.25)
+        let unplayedColor = colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.25)
         let playheadX = size.width * progress
         let hoverX = hoverProgress.map { size.width * $0 }
 
