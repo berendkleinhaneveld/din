@@ -9,6 +9,7 @@ Download latest release **[here](https://github.com/berendkleinhaneveld/din/rele
 ## Features
 
 - Drag-and-drop or open audio files (MP3, M4A, AIFF, WAV, FLAC)
+- Gapless playback for seamless transitions between tracks
 - Waveform visualization with playback progress
 - M3U8 playlist save/load
 - Open Recent menu for quick access to previous files and playlists

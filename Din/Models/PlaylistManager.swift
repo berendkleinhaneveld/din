@@ -26,7 +26,9 @@ final class PlaylistManager: ObservableObject {
 
     /// Live time for UI display — reads directly from the player for accuracy.
     var displayTime: TimeInterval {
-        player?.currentTime ?? currentTime
+        guard let player else { return currentTime }
+        let seconds = CMTimeGetSeconds(player.currentTime())
+        return seconds.isFinite ? seconds : currentTime
     }
 
     var currentIndex: Int? {
@@ -43,11 +45,12 @@ final class PlaylistManager: ObservableObject {
         }
     }
 
-    private var player: AVAudioPlayer?
+    private var player: AVQueuePlayer?
     private var timer: Timer?
     private var tickCount = 0
     private var _suppressUndo = false
     private var waveformTask: Task<Void, Never>?
+    private var endObserver: NSObjectProtocol?
 
     var currentTrack: Track? {
         guard let id = currentTrackID else { return nil }
@@ -167,7 +170,8 @@ final class PlaylistManager: ObservableObject {
     }
 
     func seek(to time: TimeInterval) {
-        player?.currentTime = time
+        let cmTime = CMTime(seconds: time, preferredTimescale: 600)
+        player?.seek(to: cmTime, toleranceBefore: .zero, toleranceAfter: .zero)
         currentTime = time
         updateNowPlayingInfo()
     }
@@ -408,18 +412,79 @@ final class PlaylistManager: ObservableObject {
 
     private func loadAndPlay(track: Track) {
         stop()
-        do {
-            player = try AVAudioPlayer(contentsOf: track.url)
-            player?.volume = volume
-            player?.prepareToPlay()
-            player?.play()
-            isPlaying = true
-            startTimer()
-            updateNowPlayingInfo()
-        } catch {
-            isPlaying = false
+
+        let item = AVPlayerItem(url: track.url)
+        let queuePlayer = AVQueuePlayer(playerItem: item)
+        queuePlayer.volume = volume
+        player = queuePlayer
+
+        // Queue the next track for gapless playback
+        enqueueNextTrack()
+
+        // Observe when the current item finishes playing
+        endObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                guard let finishedItem = notification.object as? AVPlayerItem else { return }
+                // Only handle if this notification is for an item in our player
+                guard self.player != nil else { return }
+                self.handleItemDidFinish(finishedItem)
+            }
         }
+
+        queuePlayer.play()
+        isPlaying = true
+        startTimer()
+        updateNowPlayingInfo()
         generateWaveform(for: track.url)
+    }
+
+    /// Enqueue the next track in the AVQueuePlayer for gapless playback.
+    private func enqueueNextTrack() {
+        guard let player else { return }
+        guard let idx = currentIndex else { return }
+        let nextIndex = idx + 1
+        guard nextIndex < tracks.count else {
+            if repeatEnabled && !tracks.isEmpty {
+                let nextItem = AVPlayerItem(url: tracks[0].url)
+                player.insert(nextItem, after: nil)
+            }
+            return
+        }
+        let nextItem = AVPlayerItem(url: tracks[nextIndex].url)
+        player.insert(nextItem, after: nil)
+    }
+
+    /// Called when an AVPlayerItem finishes. AVQueuePlayer automatically advances
+    /// to the next queued item (gapless), so we just update our tracking state.
+    private func handleItemDidFinish(_ finishedItem: AVPlayerItem) {
+        guard let idx = currentIndex else { return }
+        let nextIndex = idx + 1
+
+        if nextIndex < tracks.count {
+            // AVQueuePlayer has already advanced to the next item
+            currentIndex = nextIndex
+            currentTime = 0
+            updateNowPlayingInfo()
+            generateWaveform(for: tracks[nextIndex].url)
+            // Queue the track after that for continued gapless playback
+            enqueueNextTrack()
+        } else if repeatEnabled && !tracks.isEmpty {
+            // AVQueuePlayer advanced to the repeat item we queued
+            currentIndex = 0
+            currentTime = 0
+            updateNowPlayingInfo()
+            generateWaveform(for: tracks[0].url)
+            enqueueNextTrack()
+        } else {
+            // End of playlist
+            stop()
+            currentIndex = 0
+        }
     }
 
     private func generateWaveform(for url: URL) {
@@ -457,7 +522,12 @@ final class PlaylistManager: ObservableObject {
     }
 
     private func stop() {
-        player?.stop()
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+            self.endObserver = nil
+        }
+        player?.pause()
+        player?.removeAllItems()
         player = nil
         isPlaying = false
         currentTime = 0
@@ -474,9 +544,9 @@ final class PlaylistManager: ObservableObject {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 if let p = self.player {
-                    self.currentTime = p.currentTime
-                    if !p.isPlaying && self.isPlaying {
-                        self.next()
+                    let seconds = CMTimeGetSeconds(p.currentTime())
+                    if seconds.isFinite {
+                        self.currentTime = seconds
                     }
                 }
                 self.tickCount += 1
