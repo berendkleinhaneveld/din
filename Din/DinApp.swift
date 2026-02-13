@@ -128,6 +128,8 @@ struct DinApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    private var mainWindow: NSWindow?
+
     func application(_ application: NSApplication, open urls: [URL]) {
         Task { @MainActor in
             for url in urls {
@@ -144,9 +146,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag, let window = sender.windows.first {
-            window.makeKeyAndOrderFront(nil)
+        if !flag {
+            mainWindow?.makeKeyAndOrderFront(nil)
+            sender.activate(ignoringOtherApps: true)
         }
         return false
     }
@@ -155,8 +162,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Disable window tabbing (removes "Show Tab Bar" / "Show All Tabs" from View menu)
         NSWindow.allowsAutomaticWindowTabbing = false
 
-        // Close extra windows that SwiftUI may have created
+        // Keep a reference to the main window and prevent it from being
+        // deallocated when closed, so it can be shown again later.
         DispatchQueue.main.async {
+            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+                window.isReleasedWhenClosed = false
+                self.mainWindow = window
+            }
+
+            // Close extra windows that SwiftUI may have created
             let visible = NSApp.windows.filter { $0.isVisible }
             for window in visible.dropFirst() {
                 window.close()
