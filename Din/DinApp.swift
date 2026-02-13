@@ -144,9 +144,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return false
+    }
+
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag, let window = sender.windows.first {
-            window.makeKeyAndOrderFront(nil)
+        if !flag {
+            if let window = sender.windows.first(where: { $0.canBecomeMain }) {
+                window.makeKeyAndOrderFront(nil)
+            } else {
+                // SwiftUI destroyed the window; ask it to create a new one
+                sender.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
+            }
+            sender.activate(ignoringOtherApps: true)
         }
         return false
     }
