@@ -81,8 +81,15 @@ jobs:
         run: |
           DMG_PATH=".build/Din-$VERSION.dmg"
 
+          # Stage DMG contents: app + Applications shortcut
+          DMG_STAGE=".build/dmg-stage"
+          rm -rf "$DMG_STAGE"
+          mkdir -p "$DMG_STAGE"
+          cp -R ".build/Din.app" "$DMG_STAGE/"
+          ln -s /Applications "$DMG_STAGE/Applications"
+
           # Create DMG for notarization
-          hdiutil create -volname "Din" -srcfolder ".build/Din.app" \
+          hdiutil create -volname "Din" -srcfolder "$DMG_STAGE" \
             -ov -format UDZO "$DMG_PATH"
 
           xcrun notarytool submit "$DMG_PATH" \
@@ -95,7 +102,11 @@ jobs:
 
           # Recreate DMG with stapled app
           rm "$DMG_PATH"
-          hdiutil create -volname "Din" -srcfolder ".build/Din.app" \
+          rm -rf "$DMG_STAGE"
+          mkdir -p "$DMG_STAGE"
+          cp -R ".build/Din.app" "$DMG_STAGE/"
+          ln -s /Applications "$DMG_STAGE/Applications"
+          hdiutil create -volname "Din" -srcfolder "$DMG_STAGE" \
             -ov -format UDZO "$DMG_PATH"
 
       - name: Generate changelog
