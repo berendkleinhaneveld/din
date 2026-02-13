@@ -17,6 +17,10 @@ Download latest release **[here](https://github.com/berendkleinhaneveld/din/rele
 - Undo/redo for playlist changes
 - Lightweight — no external dependencies
 
+## Privacy
+
+Din performs no tracking and makes no network connections whatsoever. Your music stays on your machine.
+
 ## Requirements
 
 - macOS 14+
