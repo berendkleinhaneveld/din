@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  release:
+    types: [created]
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   lint:
@@ -23,12 +29,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
           fetch-depth: 0
 
       - name: Set version from tag
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          TAG="${GITHUB_REF_NAME}"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
 
       - name: Build release binary
         run: swift build -c release --arch arm64 --arch x86_64
@@ -120,15 +131,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" \
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" \
               ".build/Din-$VERSION.dmg" \
               --clobber
-            gh release edit "$GITHUB_REF_NAME" \
+            gh release edit "$TAG" \
               --title "Din $VERSION" \
               --notes-file changelog.md
           else
-            gh release create "$GITHUB_REF_NAME" \
+            gh release create "$TAG" \
               ".build/Din-$VERSION.dmg" \
               --title "Din $VERSION" \
               --notes-file changelog.md
