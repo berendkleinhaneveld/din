@@ -20,6 +20,8 @@
     <string>Din</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
+    <key>NSAppleMusicUsageDescription</key>
+    <string>Din uses system media controls and displays Now Playing info. It does not access your music library.</string>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
