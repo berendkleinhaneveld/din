@@ -52,6 +52,13 @@ final class PlaylistManager: ObservableObject {
     private var waveformTask: Task<Void, Never>?
     private var endObserver: NSObjectProtocol?
 
+    /// The item currently playing, and the one queued behind it for gapless
+    /// playback. Tracked so the end-of-item notification — which is posted for
+    /// every `AVPlayerItem` in the process — can be matched against the item we
+    /// are actually waiting on instead of advancing the playlist on any item.
+    private var playingItem: AVPlayerItem?
+    private var queuedItem: AVPlayerItem?
+
     var currentTrack: Track? {
         guard let id = currentTrackID else { return nil }
         return tracks.first { $0.id == id }
@@ -70,8 +77,14 @@ final class PlaylistManager: ObservableObject {
 
     // MARK: - Undo
 
+    /// Always resolve to the same window's undo manager.
+    ///
+    /// Keying off `keyWindow` is unreliable: while a drag is in flight from
+    /// another app, or while the volume popover is key, it resolves to a
+    /// different manager — or to nil, which silently drops the snapshot and
+    /// makes the next undo jump two operations back.
     private var undoManager: UndoManager? {
-        NSApp.keyWindow?.undoManager ?? NSApp.windows.first?.undoManager
+        NSApp.windows.first { $0.canBecomeMain && !($0 is NSPanel) }?.undoManager
     }
 
     private func registerUndoSnapshot() {
@@ -177,8 +190,11 @@ final class PlaylistManager: ObservableObject {
     }
 
     func skipForward(by seconds: TimeInterval = 5) {
-        let target = min(displayTime + seconds, currentTrack?.duration ?? displayTime)
-        seek(to: target)
+        let target = displayTime + seconds
+        // Duration is 0 until metadata finishes loading; clamping to it then
+        // would seek to the start of the track instead of skipping forward.
+        let limit = trackDuration
+        seek(to: limit > 0 ? min(target, limit) : target)
     }
 
     func skipBackward(by seconds: TimeInterval = 5) {
@@ -194,25 +210,45 @@ final class PlaylistManager: ObservableObject {
 
     func toggleRepeat() {
         repeatEnabled.toggle()
+        // The look-ahead item was queued under the previous setting: on the last
+        // track, enabling repeat had no effect until the next load, and disabling
+        // it still wrapped around to track one.
+        resyncQueue()
         saveState()
+    }
+
+    /// Duration of the current track, falling back to the player's own value
+    /// while metadata is still loading.
+    private var trackDuration: TimeInterval {
+        if let duration = currentTrack?.duration, duration > 0 {
+            return duration
+        }
+        guard let seconds = player?.currentItem?.duration.seconds, seconds.isFinite, seconds > 0 else {
+            return 0
+        }
+        return seconds
     }
 
     // MARK: - Playlist Management
 
     func addTracks(urls: [URL], at index: Int? = nil) {
-        registerUndoSnapshot()
         let audioURLs = MetadataLoader.audioFiles(in: urls)
+        // Snapshot only once we know something will actually change, otherwise
+        // dropping a non-audio file leaves a no-op entry on the undo stack.
         guard !audioURLs.isEmpty else { return }
+        registerUndoSnapshot()
 
-        let insertionIndex = index ?? tracks.count
+        // Clamp once and reuse: the insert was previously clamped while the
+        // metadata writes below used the raw value, so an out-of-range index
+        // sent the loaded titles and durations to the wrong rows.
+        let insertionIndex = min(max(index ?? tracks.count, 0), tracks.count)
         let placeholders = audioURLs.map { Track(url: $0) }
-        tracks.insert(contentsOf: placeholders, at: min(insertionIndex, tracks.count))
+        tracks.insert(contentsOf: placeholders, at: insertionIndex)
 
-        let startIndex = insertionIndex
         for (offset, url) in audioURLs.enumerated() {
             Task {
                 let track = await MetadataLoader.load(url: url)
-                let targetIndex = startIndex + offset
+                let targetIndex = insertionIndex + offset
                 if targetIndex < tracks.count, tracks[targetIndex].url == url {
                     tracks[targetIndex].title = track.title
                     tracks[targetIndex].artist = track.artist
@@ -221,6 +257,7 @@ final class PlaylistManager: ObservableObject {
                 }
             }
         }
+        resyncQueue()
         saveState()
     }
 
@@ -242,6 +279,9 @@ final class PlaylistManager: ObservableObject {
             } else {
                 currentTrackID = nil
             }
+        } else {
+            // Removing tracks around the current one changes what plays next.
+            resyncQueue()
         }
         saveState()
     }
@@ -256,10 +296,17 @@ final class PlaylistManager: ObservableObject {
     }
 
     func replacePlaylist(urls: [URL]) {
+        // Resolve the audio files up front. Without this, dropping a document or
+        // a folder with no audio in it clears the playlist and replaces it with
+        // nothing, because `clearPlaylist` runs before `addTracks` discovers
+        // there was nothing to add.
+        let audioURLs = MetadataLoader.audioFiles(in: urls)
+        guard !audioURLs.isEmpty else { return }
+
         registerUndoSnapshot()
         _suppressUndo = true
         clearPlaylist()
-        addTracks(urls: urls)
+        addTracks(urls: audioURLs)
         _suppressUndo = false
         if !tracks.isEmpty {
             playTrack(at: 0)
@@ -269,6 +316,8 @@ final class PlaylistManager: ObservableObject {
     func moveTrack(from source: IndexSet, to destination: Int) {
         registerUndoSnapshot()
         tracks.move(fromOffsets: source, toOffset: destination)
+        // Reordering changes which track follows the current one.
+        resyncQueue()
         saveState()
     }
 
@@ -390,7 +439,9 @@ final class PlaylistManager: ObservableObject {
         if let track = currentTrack {
             var info: [String: Any] = [
                 MPMediaItemPropertyTitle: track.title,
-                MPMediaItemPropertyPlaybackDuration: track.duration,
+                // Falls back to the player's duration so the Now Playing scrubber
+                // isn't stuck at zero while metadata is still loading.
+                MPMediaItemPropertyPlaybackDuration: trackDuration,
                 MPNowPlayingInfoPropertyElapsedPlaybackTime: displayTime,
                 MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
             ]
@@ -417,6 +468,7 @@ final class PlaylistManager: ObservableObject {
         let queuePlayer = AVQueuePlayer(playerItem: item)
         queuePlayer.volume = volume
         player = queuePlayer
+        playingItem = item
 
         // Queue the next track for gapless playback
         enqueueNextTrack()
@@ -430,8 +482,10 @@ final class PlaylistManager: ObservableObject {
             MainActor.assumeIsolated {
                 guard let self else { return }
                 guard let finishedItem = notification.object as? AVPlayerItem else { return }
-                // Only handle if this notification is for an item in our player
-                guard self.player != nil else { return }
+                // This notification fires for every AVPlayerItem in the process,
+                // including ones we have already discarded, so only advance when
+                // it is the item we are actually waiting on.
+                guard self.player != nil, finishedItem === self.playingItem else { return }
                 self.handleItemDidFinish(finishedItem)
             }
         }
@@ -443,20 +497,41 @@ final class PlaylistManager: ObservableObject {
         generateWaveform(for: track.url)
     }
 
+    /// The track that should play after the current one, honouring repeat.
+    private var nextTrackURL: URL? {
+        guard let idx = currentIndex else { return nil }
+        let nextIndex = idx + 1
+        if nextIndex < tracks.count {
+            return tracks[nextIndex].url
+        }
+        return repeatEnabled ? tracks.first?.url : nil
+    }
+
     /// Enqueue the next track in the AVQueuePlayer for gapless playback.
     private func enqueueNextTrack() {
-        guard let player else { return }
-        guard let idx = currentIndex else { return }
-        let nextIndex = idx + 1
-        guard nextIndex < tracks.count else {
-            if repeatEnabled && !tracks.isEmpty {
-                let nextItem = AVPlayerItem(url: tracks[0].url)
-                player.insert(nextItem, after: nil)
-            }
-            return
-        }
-        let nextItem = AVPlayerItem(url: tracks[nextIndex].url)
+        queuedItem = nil
+        guard let player, let nextURL = nextTrackURL else { return }
+        let nextItem = AVPlayerItem(url: nextURL)
         player.insert(nextItem, after: nil)
+        queuedItem = nextItem
+    }
+
+    /// Re-align the player's look-ahead queue with the playlist.
+    ///
+    /// The next track is queued the moment the current one starts, so any edit
+    /// afterwards — reorder, insert, remove, or toggling repeat — leaves a stale
+    /// item queued and the wrong track plays next. Left alone when the queued
+    /// item is already correct, so an item that has begun buffering for a gapless
+    /// transition isn't discarded and rebuilt for nothing.
+    private func resyncQueue() {
+        guard let player, player.currentItem != nil else { return }
+        let queuedURL = (queuedItem?.asset as? AVURLAsset)?.url
+        guard queuedURL != nextTrackURL else { return }
+
+        for item in player.items().dropFirst() {
+            player.remove(item)
+        }
+        enqueueNextTrack()
     }
 
     /// Called when an AVPlayerItem finishes. AVQueuePlayer automatically advances
@@ -464,6 +539,11 @@ final class PlaylistManager: ObservableObject {
     private func handleItemDidFinish(_ finishedItem: AVPlayerItem) {
         guard let idx = currentIndex else { return }
         let nextIndex = idx + 1
+
+        // The item AVQueuePlayer just advanced to is the one we queued behind
+        // the finished track; it becomes the item we now wait on.
+        playingItem = queuedItem
+        queuedItem = nil
 
         if nextIndex < tracks.count {
             // AVQueuePlayer has already advanced to the next item
@@ -529,6 +609,8 @@ final class PlaylistManager: ObservableObject {
         player?.pause()
         player?.removeAllItems()
         player = nil
+        playingItem = nil
+        queuedItem = nil
         isPlaying = false
         currentTime = 0
         stopTimer()

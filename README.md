@@ -35,6 +35,7 @@ Din performs no tracking and makes no network connections whatsoever. Your music
 | Enter       | Play selected         |
 | Cmd+O       | Open files            |
 | Cmd+Shift+O | Append files          |
+| Cmd+0       | Show the Din window   |
 
 ## Build
 

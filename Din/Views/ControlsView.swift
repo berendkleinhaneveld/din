@@ -6,6 +6,19 @@ struct ControlsView: View {
     @State private var isDropTargeted = false
     @State private var showVolumePopover = false
 
+    /// Drives the waveform's bar-transition animation: bumped whenever new peaks
+    /// arrive, and cleared once they stop changing.
+    @State private var peaksVersion = 0
+    @State private var waveformIsSettled = true
+
+    /// Redraw the waveform Canvas at 30 fps only when something is actually
+    /// moving. Ticking unconditionally kept redrawing an unchanging waveform
+    /// 30 times a second for as long as the app stayed open, even while paused
+    /// with nothing loaded.
+    private var tickInterval: TimeInterval {
+        manager.isPlaying || !waveformIsSettled ? 1.0 / 30.0 : 1.0
+    }
+
     var body: some View {
         VStack(spacing: 6) {
             // Now playing info — fixed height so controls don't shift
@@ -79,7 +92,7 @@ struct ControlsView: View {
 
             // Waveform progress bar — pass context.date so the Canvas
             // redraws each tick (SwiftUI skips redraws when no props change)
-            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { context in
+            TimelineView(.periodic(from: .now, by: tickInterval)) { context in
                 WaveformView(
                     peaks: manager.waveformPeaks,
                     currentTime: manager.displayTime,
@@ -87,6 +100,16 @@ struct ControlsView: View {
                     onSeek: manager.seek,
                     now: context.date
                 )
+            }
+            .onChange(of: manager.waveformPeaks) { _, _ in
+                waveformIsSettled = false
+                peaksVersion &+= 1
+            }
+            .task(id: peaksVersion) {
+                guard !waveformIsSettled else { return }
+                try? await Task.sleep(for: .milliseconds(600))
+                guard !Task.isCancelled else { return }
+                waveformIsSettled = true
             }
         }
         .padding(.horizontal, 12)
@@ -109,18 +132,7 @@ struct ControlsView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) {
-        var urls: [URL] = []
-        let group = DispatchGroup()
-        for provider in providers {
-            group.enter()
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
-                defer { group.leave() }
-                if let data = data as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
-                    urls.append(url)
-                }
-            }
-        }
-        group.notify(queue: .main) {
+        DropLoader.loadURLs(from: providers) { urls in
             manager.replacePlaylist(urls: urls)
         }
     }

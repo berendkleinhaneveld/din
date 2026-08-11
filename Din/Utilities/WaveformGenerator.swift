@@ -5,7 +5,19 @@ import Foundation
 actor WaveformGenerator {
     static let shared = WaveformGenerator()
 
+    enum GeneratorError: Error {
+        case unsupportedFormat
+        case allocationFailed
+    }
+
     private let binCount = 2048
+
+    /// Frames decoded per read. Peak memory is bounded by this rather than by the
+    /// length of the file: a whole-file float32 buffer is roughly 21 MB per minute
+    /// of 44.1 kHz stereo, so an hour-long recording needs well over a gigabyte in
+    /// one allocation — which is both wasteful and liable to fail outright.
+    private static let framesPerRead: AVAudioFrameCount = 1 << 18  // ~6 s at 44.1 kHz
+
     private let cacheDirectory: URL = {
         let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
         let dir = caches.appendingPathComponent("din-waveforms", isDirectory: true)
@@ -50,7 +62,7 @@ actor WaveformGenerator {
     }
 
     /// Generate waveform peaks with streaming progress updates.
-    /// Calls `onProgress` on the main actor after each chunk is decoded.
+    /// Calls `onProgress` on the main actor as each chunk is decoded.
     /// If cached, calls `onProgress` once with the full result.
     func peaksStreaming(
         for url: URL,
@@ -63,7 +75,7 @@ actor WaveformGenerator {
             return cached
         }
 
-        let peaks = try await decodeAndExtractStreaming(url: url, onProgress: onProgress)
+        let peaks = try await decode(url: url, onProgress: onProgress)
         saveCache(peaks, for: url)
         return peaks
     }
@@ -95,158 +107,136 @@ actor WaveformGenerator {
     // MARK: - Decode & Extract
 
     private func decodeAndExtract(url: URL) async throws -> [Float] {
-        try Task.checkCancellation()
-
-        // Read file on a background DispatchQueue to avoid blocking the cooperative pool
-        let buffer: AVAudioPCMBuffer = try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    let audioFile = try AVAudioFile(forReading: url)
-                    let format = AVAudioFormat(
-                        commonFormat: .pcmFormatFloat32,
-                        sampleRate: audioFile.processingFormat.sampleRate,
-                        channels: audioFile.processingFormat.channelCount,
-                        interleaved: false
-                    )!
-                    let frameCount = AVAudioFrameCount(audioFile.length)
-                    guard frameCount > 0 else {
-                        let empty = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 1)!
-                        continuation.resume(returning: empty)
-                        return
-                    }
-                    let pcmBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount)!
-                    try audioFile.read(into: pcmBuffer)
-                    continuation.resume(returning: pcmBuffer)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-
-        try Task.checkCancellation()
-
-        return extractPeaks(from: buffer)
+        try await decode(url: url, onProgress: { _ in })
     }
 
-    private func decodeAndExtractStreaming(
+    /// Decode `url` on a background queue, reporting partial results as they land.
+    ///
+    /// The work runs on a DispatchQueue rather than the cooperative pool so a long
+    /// decode can't starve it and stall the UI. `withCheckedThrowingContinuation`
+    /// has no cancellation of its own, so a flag is handed to the worker and
+    /// flipped by the enclosing cancellation handler.
+    private func decode(
         url: URL,
         onProgress: @MainActor @Sendable ([Float]) -> Void
     ) async throws -> [Float] {
-        try Task.checkCancellation()
+        let binCount = self.binCount
+        let cancelFlag = CancelFlag()
 
-        // Read the entire file on a background DispatchQueue so we don't
-        // block the cooperative thread pool (which would cause UI jank).
-        let buffer: AVAudioPCMBuffer = try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    let audioFile = try AVAudioFile(forReading: url)
-                    let format = AVAudioFormat(
-                        commonFormat: .pcmFormatFloat32,
-                        sampleRate: audioFile.processingFormat.sampleRate,
-                        channels: audioFile.processingFormat.channelCount,
-                        interleaved: false
-                    )!
-                    let frameCount = AVAudioFrameCount(audioFile.length)
-                    let pcmBuffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: max(1, frameCount))!
-                    if frameCount > 0 {
-                        try audioFile.read(into: pcmBuffer)
+        return try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[Float], Error>) in
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        let peaks = try Self.extractPeaks(
+                            url: url,
+                            binCount: binCount,
+                            isCancelled: { cancelFlag.isCancelled },
+                            onProgress: { partial in
+                                DispatchQueue.main.async {
+                                    MainActor.assumeIsolated { onProgress(partial) }
+                                }
+                            }
+                        )
+                        continuation.resume(returning: peaks)
+                    } catch {
+                        continuation.resume(throwing: error)
                     }
-                    continuation.resume(returning: pcmBuffer)
-                } catch {
-                    continuation.resume(throwing: error)
                 }
             }
+        } onCancel: {
+            cancelFlag.cancel()
+        }
+    }
+
+    /// Read the file in fixed-size chunks, folding each chunk into the peak bins.
+    ///
+    /// Bins can straddle chunk boundaries, so a partially filled bin is carried
+    /// over by seeding the running maximum from what is already stored.
+    private static func extractPeaks(
+        url: URL,
+        binCount: Int,
+        isCancelled: () -> Bool,
+        onProgress: ([Float]) -> Void
+    ) throws -> [Float] {
+        let audioFile = try AVAudioFile(forReading: url)
+        let processingFormat = audioFile.processingFormat
+        guard
+            let format = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: processingFormat.sampleRate,
+                channels: processingFormat.channelCount,
+                interleaved: false
+            )
+        else {
+            throw GeneratorError.unsupportedFormat
         }
 
-        try Task.checkCancellation()
+        let totalFrames = audioFile.length
+        guard totalFrames > 0 else { return Array(repeating: 0, count: binCount) }
 
-        let frameCount = Int(buffer.frameLength)
-        guard frameCount > 0 else { return Array(repeating: 0, count: binCount) }
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: framesPerRead) else {
+            throw GeneratorError.allocationFailed
+        }
 
-        let channelCount = Int(buffer.format.channelCount)
-        let framesPerBin = max(1, frameCount / binCount)
-        var rawPeaks = [Float](repeating: 0, count: binCount)
+        let framesPerBin = max(1, Int(totalFrames / Int64(binCount)))
+        let channelCount = Int(format.channelCount)
+        var peaks = [Float](repeating: 0, count: binCount)
         var globalMax: Float = 0
+        var frameCursor = 0
+        var publishedBin = -1
 
-        // Extract peaks in chunks of bins — much faster than per-frame iteration
-        let chunkCount = 64
-        let binsPerChunk = max(1, binCount / chunkCount)
+        while frameCursor < Int(totalFrames) {
+            if isCancelled() { throw CancellationError() }
 
-        for chunkIndex in 0..<chunkCount {
-            try Task.checkCancellation()
+            try audioFile.read(into: buffer, frameCount: framesPerRead)
+            let framesRead = Int(buffer.frameLength)
+            guard framesRead > 0 else { break }
 
-            let binStart = chunkIndex * binsPerChunk
-            let binEnd = min(binStart + binsPerChunk, binCount)
+            let chunkEnd = frameCursor + framesRead
+            var bin = frameCursor / framesPerBin
 
-            for bin in binStart..<binEnd {
-                let frameStart = bin * framesPerBin
-                let frameEnd = min(frameStart + framesPerBin, frameCount)
-                guard frameStart < frameEnd else { continue }
+            while bin < binCount {
+                let binStart = bin * framesPerBin
+                if binStart >= chunkEnd { break }
 
-                var maxVal: Float = 0
-                for ch in 0..<channelCount {
-                    guard let channelData = buffer.floatChannelData?[ch] else { continue }
-                    for frame in frameStart..<frameEnd {
+                let binEnd = min(binStart + framesPerBin, chunkEnd)
+                let localStart = max(binStart, frameCursor) - frameCursor
+                let localEnd = binEnd - frameCursor
+                guard localStart < localEnd else {
+                    bin += 1
+                    continue
+                }
+
+                var maxVal = peaks[bin]
+                for channel in 0..<channelCount {
+                    guard let channelData = buffer.floatChannelData?[channel] else { continue }
+                    for frame in localStart..<localEnd {
                         let absVal = abs(channelData[frame])
                         if absVal > maxVal { maxVal = absVal }
                     }
                 }
-                rawPeaks[bin] = maxVal
+                peaks[bin] = maxVal
                 if maxVal > globalMax { globalMax = maxVal }
+                bin += 1
             }
 
-            // Publish normalized partial result
-            if globalMax > 0 {
-                let normalized = rawPeaks.map { $0 / globalMax }
-                await onProgress(normalized)
-            } else {
-                await onProgress(rawPeaks)
-            }
-        }
+            frameCursor = chunkEnd
 
-        // Final normalization
-        if globalMax > 0 {
-            for i in 0..<rawPeaks.count {
-                rawPeaks[i] /= globalMax
+            // Publish a normalized snapshot as bins complete.
+            let completedBin = min(frameCursor / framesPerBin, binCount)
+            if completedBin > publishedBin {
+                publishedBin = completedBin
+                onProgress(normalized(peaks, by: globalMax))
             }
         }
 
-        return rawPeaks
+        return normalized(peaks, by: globalMax)
     }
 
-    private func extractPeaks(from buffer: AVAudioPCMBuffer) -> [Float] {
-        let frameCount = Int(buffer.frameLength)
-        let channelCount = Int(buffer.format.channelCount)
-        guard frameCount > 0 else { return Array(repeating: 0, count: binCount) }
-
-        let framesPerBin = max(1, frameCount / binCount)
-        var peaks = [Float](repeating: 0, count: binCount)
-
-        for bin in 0..<binCount {
-            let start = bin * framesPerBin
-            let end = min(start + framesPerBin, frameCount)
-            guard start < end else { continue }
-
-            var maxVal: Float = 0
-            for ch in 0..<channelCount {
-                guard let channelData = buffer.floatChannelData?[ch] else { continue }
-                for frame in start..<end {
-                    let absVal = abs(channelData[frame])
-                    if absVal > maxVal { maxVal = absVal }
-                }
-            }
-            peaks[bin] = maxVal
-        }
-
-        // Normalize to 0.0–1.0
-        let globalMax = peaks.max() ?? 0
-        if globalMax > 0 {
-            for i in 0..<peaks.count {
-                peaks[i] /= globalMax
-            }
-        }
-
-        return peaks
+    private static func normalized(_ peaks: [Float], by globalMax: Float) -> [Float] {
+        guard globalMax > 0 else { return peaks }
+        return peaks.map { $0 / globalMax }
     }
 
     // MARK: - Cache
@@ -276,10 +266,12 @@ actor WaveformGenerator {
     private func loadCache(for url: URL) -> [Float]? {
         let path = cacheURL(for: url)
         guard let data = try? Data(contentsOf: path) else { return nil }
-        let expectedSize = binCount * MemoryLayout<Float>.size
-        guard data.count == expectedSize else { return nil }
-        return data.withUnsafeBytes { buffer in
-            Array(buffer.bindMemory(to: Float.self))
+        let size = MemoryLayout<Float>.size
+        guard data.count == binCount * size else { return nil }
+        // `Data` gives no alignment guarantee, so read each value unaligned
+        // rather than binding the raw buffer to `Float`.
+        return data.withUnsafeBytes { raw in
+            (0..<binCount).map { raw.loadUnaligned(fromByteOffset: $0 * size, as: Float.self) }
         }
     }
 
@@ -289,5 +281,23 @@ actor WaveformGenerator {
             Data(buffer: buffer)
         }
         try? data.write(to: path, options: .atomic)
+    }
+}
+
+/// Cancellation signal that can cross into the decode worker queue.
+private final class CancelFlag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    var isCancelled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancelled
+    }
+
+    func cancel() {
+        lock.lock()
+        defer { lock.unlock() }
+        cancelled = true
     }
 }
