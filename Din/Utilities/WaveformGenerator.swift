@@ -66,7 +66,7 @@ actor WaveformGenerator {
     /// If cached, calls `onProgress` once with the full result.
     func peaksStreaming(
         for url: URL,
-        onProgress: @MainActor @Sendable ([Float]) -> Void
+        onProgress: @escaping @MainActor @Sendable ([Float]) -> Void
     ) async throws -> [Float] {
         cancelAll(except: url)
 
@@ -118,7 +118,7 @@ actor WaveformGenerator {
     /// flipped by the enclosing cancellation handler.
     private func decode(
         url: URL,
-        onProgress: @MainActor @Sendable ([Float]) -> Void
+        onProgress: @escaping @MainActor @Sendable ([Float]) -> Void
     ) async throws -> [Float] {
         let binCount = self.binCount
         let cancelFlag = CancelFlag()
