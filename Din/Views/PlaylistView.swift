@@ -21,7 +21,7 @@ struct PlaylistView: View {
                     .fill(.white.opacity(isDropTargeted ? 0.06 : 0))
             )
             .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                loadURLs(from: providers) { urls in
+                DropLoader.loadURLs(from: providers) { urls in
                     manager.addTracks(urls: urls, at: 0)
                 }
                 return true
@@ -65,7 +65,7 @@ struct PlaylistView: View {
                     manager.moveTrack(from: source, to: destination)
                 }
                 .onInsert(of: [.fileURL]) { index, providers in
-                    loadURLs(from: providers) { urls in
+                    DropLoader.loadURLs(from: providers) { urls in
                         manager.addTracks(urls: urls, at: index)
                     }
                 }
@@ -81,23 +81,6 @@ struct PlaylistView: View {
 
     private func rowIndex(for track: Track) -> Int {
         (manager.tracks.firstIndex(of: track) ?? 0) + 1
-    }
-
-    private func loadURLs(from providers: [NSItemProvider], completion: @escaping ([URL]) -> Void) {
-        var urls: [URL] = []
-        let group = DispatchGroup()
-        for provider in providers {
-            group.enter()
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in
-                defer { group.leave() }
-                if let data = data as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
-                    urls.append(url)
-                }
-            }
-        }
-        group.notify(queue: .main) {
-            completion(urls)
-        }
     }
 }
 

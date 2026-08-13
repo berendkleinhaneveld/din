@@ -35,9 +35,12 @@ scripts/generate_assets.sh     # converts PNG → Din/Assets/Din.icns via sips +
 - `Din/Models/PlaylistManager.swift` — All playback, playlist mutation, persistence, undo, and media key logic
 - `Din/Models/Track.swift` — Simple value type with metadata fields
 - `Din/Utilities/MetadataLoader.swift` — Async AVAsset metadata extraction; also handles directory recursion for audio file discovery
+- `Din/Utilities/DropLoader.swift` — Shared drag-and-drop URL collection (order-preserving, thread-safe)
 - `Din/Views/` — `ContentView` (root layout + status bar), `ControlsView` (transport + volume + progress), `PlaylistView` (list with drag/drop/reorder/context menus), `ProgressBar` (seekable progress with drag gesture)
 
-**Drag & drop:** Supported in both `ControlsView` (replaces playlist) and `PlaylistView` (adds to playlist, supports positional insert via `onInsert`).
+**Drag & drop:** Supported in both `ControlsView` (replaces playlist) and `PlaylistView` (adds to playlist, supports positional insert via `onInsert`). Both go through `DropLoader`, which resolves providers concurrently but keeps drop order and never mutates shared state off the main queue.
+
+**Window lifecycle:** The app deliberately outlives its window (`applicationShouldTerminateAfterLastWindowClosed` returns false) so playback continues. `AppDelegate.mainWindow` therefore resolves the content window *lazily* and pins it with `isReleasedWhenClosed = false`; `applicationShouldHandleReopen` must return `true` whenever there is no window to restore, or the app becomes unreachable. `Cmd+0` ("Din Window") is the menu-bar fallback, since the File menu's "New Window" item is replaced.
 
 **Persistence:** Playlist URLs, current track index, playback position, volume, and repeat state are saved to `UserDefaults` with `Din.*` keys. State auto-saves every 5 seconds during playback and on app termination.
 

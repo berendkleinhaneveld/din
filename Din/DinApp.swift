@@ -65,6 +65,16 @@ struct DinApp: App {
                 }
             }
 
+            // Recovery path: the File menu's "New Window" item is replaced above,
+            // so without this there is no menu command that can bring the window
+            // back once it has been closed.
+            CommandGroup(after: .windowList) {
+                Button("Din Window") {
+                    (NSApp.delegate as? AppDelegate)?.showMainWindow()
+                }
+                .keyboardShortcut("0", modifiers: .command)
+            }
+
             CommandMenu("Playback") {
                 Button("Volume Up") {
                     let mgr = PlaylistManager.shared
@@ -128,15 +138,52 @@ struct DinApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    private var mainWindow: NSWindow?
+    /// Strong reference to the content window, paired with `isReleasedWhenClosed = false`
+    /// so closing it doesn't destroy it and it can be shown again later.
+    private var cachedWindow: NSWindow?
+
+    /// The app's content window, resolved lazily.
+    ///
+    /// This deliberately does *not* rely on a single lookup at launch. The SwiftUI
+    /// `WindowGroup` window may not exist yet one runloop turn after
+    /// `applicationDidFinishLaunching` — e.g. a background launch, a launch to
+    /// service an open-file event, or a launch where AppKit is still restoring
+    /// saved window state. A one-shot capture leaves the reference `nil` forever
+    /// in those cases, and then closing the window strands the app with no way back.
+    var mainWindow: NSWindow? {
+        if let cachedWindow { return cachedWindow }
+        guard let window = Self.findContentWindow() else { return nil }
+        window.isReleasedWhenClosed = false
+        cachedWindow = window
+        return window
+    }
+
+    private static func findContentWindow() -> NSWindow? {
+        // Panels (popovers, the volume slider, save/open sheets) can become key
+        // but never main, so `canBecomeMain` keeps us on the real content window.
+        NSApp.windows.first { $0.canBecomeMain && !($0 is NSPanel) }
+    }
+
+    /// Bring the content window back, whatever state it was left in.
+    func showMainWindow() {
+        guard let window = mainWindow else { return }
+        // `makeKeyAndOrderFront` does not un-minimize a window sitting in the Dock.
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
+        }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
 
     func application(_ application: NSApplication, open urls: [URL]) {
+        // Opening files while the window is closed should bring the app back,
+        // not just start playing invisibly.
+        showMainWindow()
         Task { @MainActor in
             for url in urls {
                 RecentItems.shared.addFile(url)
             }
             PlaylistManager.shared.replacePlaylist(urls: urls)
-            NSApp.activate(ignoringOtherApps: true)
         }
     }
 
@@ -151,10 +198,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
-            mainWindow?.makeKeyAndOrderFront(nil)
-            sender.activate(ignoringOtherApps: true)
-        }
+        // Returning false means "handled, don't do the default". Only claim that
+        // when we actually have a window to show — otherwise returning false with
+        // nothing to restore is what leaves the app running with no window and no
+        // way to get one back (the File menu has no "New Window" item either).
+        guard !flag else { return true }
+        guard mainWindow != nil else { return true }
+        showMainWindow()
         return false
     }
 
@@ -162,17 +212,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Disable window tabbing (removes "Show Tab Bar" / "Show All Tabs" from View menu)
         NSWindow.allowsAutomaticWindowTabbing = false
 
-        // Keep a reference to the main window and prevent it from being
-        // deallocated when closed, so it can be shown again later.
-        DispatchQueue.main.async {
-            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
-                window.isReleasedWhenClosed = false
-                self.mainWindow = window
-            }
+        // Pin the content window the first time it appears, however late that is.
+        // A launch-time lookup alone can miss it entirely (see `mainWindow`), and a
+        // window that was never pinned is gone for good once the user closes it.
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeMainNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self, self.cachedWindow == nil else { return }
+            guard let window = notification.object as? NSWindow, !(window is NSPanel) else { return }
+            window.isReleasedWhenClosed = false
+            self.cachedWindow = window
+        }
 
-            // Close extra windows that SwiftUI may have created
-            let visible = NSApp.windows.filter { $0.isVisible }
-            for window in visible.dropFirst() {
+        DispatchQueue.main.async {
+            // Close extra content windows that SwiftUI may have created. `NSApp.windows`
+            // has no defined order (it is not front-to-back), so this must key off the
+            // window we identified rather than dropping the first element of the array —
+            // otherwise it can close the real window and keep a stray one.
+            guard let main = self.mainWindow else { return }
+            for window in NSApp.windows where window !== main && window.isVisible && window.canBecomeMain {
                 window.close()
             }
         }
@@ -206,6 +266,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Keyboard shortcuts
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            guard self.shouldHandleTransportKey(event) else { return event }
+
             switch event.charactersIgnoringModifiers {
             case " ":
                 Task { @MainActor in PlaylistManager.shared.togglePlayPause() }
@@ -239,5 +301,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return event
         }
 
+    }
+
+    /// Whether a bare key press should be consumed as a transport shortcut.
+    ///
+    /// Local event monitors also fire while a modal panel is up, so without this
+    /// check the Open/Save panels are unusable: space, `[`, `]`, `{` and `}` never
+    /// reach the file-name field (they toggle playback and skip tracks instead)
+    /// and Return is swallowed rather than confirming the panel. Events carrying
+    /// a command/control/option modifier are also passed through so real menu
+    /// shortcuts such as ⌘[ aren't shadowed.
+    private func shouldHandleTransportKey(_ event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard modifiers.isDisjoint(with: [.command, .control, .option, .function]) else { return false }
+        guard let window = event.window, window === mainWindow else { return false }
+        // Field editors are NSText subclasses; never steal keys from one.
+        if window.firstResponder is NSText {
+            return false
+        }
+        return true
     }
 }
