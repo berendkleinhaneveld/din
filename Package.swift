@@ -12,6 +12,11 @@ let package = Package(
             linkerSettings: [
                 .unsafeFlags(["-Xlinker", "-sectcreate", "-Xlinker", "__TEXT", "-Xlinker", "__info_plist", "-Xlinker", "Din/Info.plist"])
             ]
-        )
+        ),
+        .testTarget(
+            name: "DinTests",
+            dependencies: ["Din"],
+            path: "Tests/DinTests"
+        ),
     ]
 )
