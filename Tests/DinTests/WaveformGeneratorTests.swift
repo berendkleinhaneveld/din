@@ -19,9 +19,28 @@ final class WaveformGeneratorTests: XCTestCase {
         XCTAssertEqual(peaks.max() ?? 0, 1.0, accuracy: 0.001, "peaks should be normalized to the loudest sample")
 
         for fraction in fractions {
-            let index = Int(Double(peaks.count) * fraction)
-            XCTAssertEqual(peaks[index], 1.0, accuracy: 0.05, "expected a burst at \(fraction) of the file")
+            XCTAssertEqual(
+                loudest(in: peaks, near: fraction), 1.0, accuracy: 0.05,
+                "expected a burst near \(fraction) of the file")
         }
+
+        // A stretch between bursts stays quiet, so the checks above cannot pass
+        // simply because the whole file came back at full scale.
+        XCTAssertEqual(loudest(in: peaks, near: 0.4), 0.1, accuracy: 0.02)
+    }
+
+    /// The loudest peak within 1% of the given position.
+    ///
+    /// Bins map to frames via a floored `frameCount / binCount`, so a burst does not
+    /// land at exactly `fraction * binCount` — the rounding drifts by a couple of bins
+    /// over the file. The window absorbs that while still being far tighter than the
+    /// displacement a chunk-boundary bug would cause.
+    private func loudest(in peaks: [Float], near fraction: Double) -> Float {
+        let center = Int(Double(peaks.count) * fraction)
+        let window = max(4, peaks.count / 100)
+        let lower = max(0, center - window)
+        let upper = min(peaks.count - 1, center + window)
+        return peaks[lower...upper].max() ?? 0
     }
 
     func testQuietSectionsKeepTheirRelativeLevel() async throws {
