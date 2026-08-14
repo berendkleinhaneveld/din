@@ -307,7 +307,7 @@
 
   .closing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
     gap: 28px;
   }
 
@@ -383,15 +383,18 @@
     <h1>Three glass directions for the Din icon</h1>
     <p class="lead">
       The current icon already has the right idea — overlapping waves, lit crests, deep water. What it
-      doesn't have is <em>material</em>. These three directions rebuild it in the glass language macOS 26
-      and iOS 26 now use for icons: layers that blur what's behind them, edges that catch light, and a
-      contact shadow where each layer meets the one behind it.
+      doesn't have is <em>material</em>, and it is very dark: measured across the icon face it averages
+      19 out of 255, with 98% of its pixels below a fifth of full brightness. These three directions
+      rebuild it in the glass language macOS 26 and iOS 26 now use — layers that blur what's behind them,
+      edges that catch light, a contact shadow where each layer meets the one behind it — and they sit
+      about four times brighter.
     </p>
     <div class="facts">
       <span>Canvas <b>1024 × 1024</b></span>
       <span>Shape <b>superellipse, n = 5</b></span>
       <span>Frost <b>live backdrop blur</b></span>
       <span>Variants <b>light + dark</b></span>
+      <span>Mean luminance <b>19 → 82</b></span>
     </div>
   </header>
 
@@ -512,6 +515,14 @@
           Same idea, four steps per layer: composite what's below, <code>GaussianBlur</code> that composite,
           paste it back through the wave mask, then draw the specular and the cast shadow. The current
           script's per-pixel loops go away.
+        </p>
+      </div>
+      <div>
+        <h3>On brightness</h3>
+        <p>
+          The dark variants deliberately start at a mid navy rather than near-black. Measured on the icon
+          face: <b>19</b> today, <b>82</b> for Tide and Swell, <b>67</b> for Ribbon, against about
+          <b>195</b> for the light variants.
         </p>
       </div>
       <div>
@@ -665,27 +676,27 @@
       dark: {
         rim: "rim-dark",
         ground:
-          "radial-gradient(80% 58% at 76% 3%, rgba(78,164,216,0.26) 0%, rgba(78,164,216,0) 62%)," +
-          "radial-gradient(48% 32% at 18% 64%, rgba(34,118,186,0.46) 0%, rgba(34,118,186,0) 62%)," +
-          "radial-gradient(42% 28% at 84% 90%, rgba(18,172,190,0.34) 0%, rgba(18,172,190,0) 60%)," +
-          "linear-gradient(178deg, #04070F 0%, #061428 46%, #0A2740 82%, #0C3752 100%)",
+          "radial-gradient(84% 62% at 74% 2%, rgba(126,206,246,0.44) 0%, rgba(126,206,246,0) 62%)," +
+          "radial-gradient(50% 34% at 18% 62%, rgba(58,152,216,0.52) 0%, rgba(58,152,216,0) 62%)," +
+          "radial-gradient(44% 30% at 84% 90%, rgba(40,200,212,0.40) 0%, rgba(40,200,212,0) 60%)," +
+          "linear-gradient(178deg, #0C2340 0%, #123A63 46%, #17588C 80%, #2183C4 100%)",
         blur: 0.032,
         extra: "saturate(1.14) brightness(1.03)",
         waves: [
-          { y: 300, amp: 26, cycles: 1.00, phase: 0.12, tintColor: "120,196,238", tint: [0.13, 0.0], fade: 0.21,
-            spec: "rgba(178,232,255,0.78)", specW: 3, bloom: "rgba(120,205,255,0.26)", bloomW: 18,
+          { y: 262, amp: 26, cycles: 1.00, phase: 0.12, tintColor: "120,196,238", tint: [0.17, 0.0], fade: 0.21,
+            spec: "rgba(200,240,255,0.92)", specW: 3.4, bloom: "rgba(130,212,255,0.36)", bloomW: 18,
             shadow: "rgba(1,6,16,0.55)", shadowW: 26, shadowBlur: "blur-m" },
-          { y: 420, amp: 40, cycles: 1.35, phase: 0.58, tintColor: "126,200,240", tint: [0.14, 0.0], fade: 0.20,
-            spec: "rgba(190,238,255,0.84)", specW: 3, bloom: "rgba(120,205,255,0.28)", bloomW: 18,
+          { y: 420, amp: 40, cycles: 1.35, phase: 0.58, tintColor: "126,200,240", tint: [0.20, 0.0], fade: 0.20,
+            spec: "rgba(208,244,255,0.94)", specW: 3.4, bloom: "rgba(130,212,255,0.38)", bloomW: 18,
             shadow: "rgba(1,6,16,0.56)", shadowW: 26, shadowBlur: "blur-m" },
-          { y: 544, amp: 46, cycles: 1.10, phase: 0.20, tintColor: "134,206,244", tint: [0.15, 0.0], fade: 0.19,
-            spec: "rgba(202,243,255,0.88)", specW: 3, bloom: "rgba(126,210,255,0.30)", bloomW: 18,
+          { y: 544, amp: 46, cycles: 1.10, phase: 0.20, tintColor: "134,206,244", tint: [0.23, 0.0], fade: 0.19,
+            spec: "rgba(216,247,255,0.96)", specW: 3.4, bloom: "rgba(136,216,255,0.40)", bloomW: 18,
             shadow: "rgba(1,6,16,0.58)", shadowW: 26, shadowBlur: "blur-m" },
-          { y: 672, amp: 40, cycles: 1.50, phase: 0.80, tintColor: "142,212,248", tint: [0.16, 0.0], fade: 0.18,
-            spec: "rgba(214,247,255,0.92)", specW: 3, bloom: "rgba(132,215,255,0.32)", bloomW: 18,
+          { y: 672, amp: 40, cycles: 1.50, phase: 0.80, tintColor: "142,212,248", tint: [0.26, 0.0], fade: 0.18,
+            spec: "rgba(226,250,255,0.98)", specW: 3.4, bloom: "rgba(142,220,255,0.42)", bloomW: 18,
             shadow: "rgba(1,6,16,0.60)", shadowW: 26, shadowBlur: "blur-m" },
-          { y: 796, amp: 32, cycles: 1.25, phase: 0.42, tintColor: "150,218,252", tint: [0.18, 0.01], fade: 0.17,
-            spec: "rgba(226,250,255,0.97)", specW: 3, bloom: "rgba(140,220,255,0.34)", bloomW: 18,
+          { y: 796, amp: 32, cycles: 1.25, phase: 0.42, tintColor: "150,218,252", tint: [0.30, 0.01], fade: 0.17,
+            spec: "rgba(238,253,255,1)", specW: 3.4, bloom: "rgba(150,226,255,0.44)", bloomW: 18,
             shadow: "rgba(1,6,16,0.62)", shadowW: 26, shadowBlur: "blur-m" }
         ]
       }
@@ -716,10 +727,10 @@
       dark: {
         rim: "rim-dark",
         ground:
-          "radial-gradient(62% 40% at 70% 9%, rgba(255,138,72,0.34) 0%, rgba(255,138,72,0) 64%)," +
-          "radial-gradient(44% 28% at 14% 70%, rgba(26,140,190,0.44) 0%, rgba(26,140,190,0) 62%)," +
-          "radial-gradient(42% 26% at 88% 94%, rgba(0,190,186,0.30) 0%, rgba(0,190,186,0) 60%)," +
-          "linear-gradient(178deg, #160C1B 0%, #24102A 16%, #0E2138 46%, #093245 76%, #06414F 100%)",
+          "radial-gradient(64% 44% at 70% 8%, rgba(255,168,104,0.58) 0%, rgba(255,168,104,0) 64%)," +
+          "radial-gradient(46% 30% at 14% 68%, rgba(44,166,218,0.55) 0%, rgba(44,166,218,0) 62%)," +
+          "radial-gradient(44% 28% at 88% 94%, rgba(10,214,204,0.42) 0%, rgba(10,214,204,0) 60%)," +
+          "linear-gradient(178deg, #34204A 0%, #3C2454 14%, #1C4067 44%, #10607E 76%, #0C7C8C 100%)",
         blur: 0.045,
         extra: "saturate(1.16) brightness(1.035)",
         waves: [
@@ -761,10 +772,10 @@
       dark: {
         rim: "rim-dark",
         ground:
-          "radial-gradient(84% 68% at 24% 88%, rgba(30,112,205,0.72) 0%, rgba(30,112,205,0) 66%)," +
-          "radial-gradient(62% 50% at 86% 6%, rgba(112,76,224,0.60) 0%, rgba(112,76,224,0) 62%)," +
-          "radial-gradient(50% 38% at 58% 46%, rgba(20,150,190,0.34) 0%, rgba(20,150,190,0) 64%)," +
-          "linear-gradient(160deg, #080B16 0%, #0A1026 46%, #0C1A34 100%)",
+          "radial-gradient(86% 70% at 24% 88%, rgba(46,142,238,0.82) 0%, rgba(46,142,238,0) 66%)," +
+          "radial-gradient(64% 52% at 86% 6%, rgba(142,102,248,0.74) 0%, rgba(142,102,248,0) 62%)," +
+          "radial-gradient(52% 40% at 58% 46%, rgba(34,182,222,0.46) 0%, rgba(34,182,222,0) 64%)," +
+          "linear-gradient(160deg, #121A3C 0%, #16224E 46%, #183262 100%)",
         blur: 0.036,
         extra: "saturate(1.2) brightness(1.05)",
         bands: [
