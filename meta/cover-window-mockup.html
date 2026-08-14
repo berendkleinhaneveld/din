@@ -218,7 +218,7 @@ footer a { color: var(--verdigris); }
 
 .layer-queue { display: flex; flex-direction: column; height: 528px; }
 
-.titlebar { height: 28px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 13px; }
+.titlebar { position: relative; height: 28px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 13px; }
 .tl { width: 12px; height: 12px; border-radius: 50%; display: block; }
 .tl.r { background: #ff5f57; }
 .tl.y { background: #febc2e; }
@@ -226,21 +226,26 @@ footer a { color: var(--verdigris); }
 
 .controls { flex: none; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
 
-.np-row { display: flex; align-items: stretch; gap: 10px; }
-.np-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-
 .np-title { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .np-sub { font-size: 11px; color: var(--label-2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* the whole proposal, in 62 points */
+/* The whole proposal, in 28 points — parked in the one part of the window that
+   was already empty, so nothing below it has to move when there's no artwork. */
 .thumb {
-  position: relative; flex: none;
-  width: 62px; aspect-ratio: 1;
-  padding: 0; border: 0; border-radius: 4px; overflow: hidden;
+  position: absolute; top: 0; right: 0;
+  width: 28px; height: 28px;
+  padding: 0; border: 0; overflow: hidden;
   background: #1b1b1b; cursor: pointer;
-  box-shadow: 0 0 0 0.5px rgba(255,255,255,0.14), 0 1px 4px rgba(0,0,0,0.4);
+  box-shadow: -0.5px 0 0 rgba(255,255,255,0.12), 0 0.5px 0 rgba(255,255,255,0.12);
 }
-.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* the alternative: inset to the 12pt gutter, right-aligned under the volume button */
+.win[data-thumb="gutter"] .thumb {
+  top: 3px; right: 12px;
+  width: 22px; height: 22px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 0.5px rgba(255,255,255,0.16);
+}
+.thumb img, .thumb .ph { width: 100%; height: 100%; object-fit: cover; display: block; }
 .thumb-veil {
   position: absolute; inset: 0;
   display: grid; place-items: center;
@@ -248,8 +253,24 @@ footer a { color: var(--verdigris); }
   opacity: 0; transition: opacity 130ms ease;
 }
 .thumb:hover .thumb-veil, .thumb:focus-visible .thumb-veil { opacity: 1; }
-.thumb:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+.thumb:focus-visible { outline: 2px solid var(--pink); outline-offset: -2px; }
 .thumb-veil svg { fill: #fff; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6)); }
+
+/* ------------------------- the no-artwork placeholders ------------------- */
+
+.ph { position: relative; width: 100%; height: 100%; display: block; }
+.ph canvas { display: block; width: 100%; height: 100%; }
+.ph-bare {
+  background: #232323;
+  display: grid; place-items: center;
+}
+.ph-bare svg { fill: rgba(255,255,255,0.14); }
+.thumb .ph-bare svg { width: 13px; height: 15px; }
+
+/* artwork present hides the placeholder, and vice versa */
+.win:not([data-art="none"]) .ph { display: none; }
+.win[data-art="none"] .thumb img,
+.win[data-art="none"] .cover > img { display: none; }
 
 .transport { position: relative; display: flex; align-items: center; justify-content: center; height: 24px; }
 .tgroup { display: flex; align-items: center; gap: 12px; }
@@ -389,6 +410,9 @@ footer a { color: var(--verdigris); }
       <path d="M1 1h5.4a.9.9 0 0 1 0 1.8H3.3l4 4a.9.9 0 0 1-1.3 1.3l-4-4v3.1a.9.9 0 0 1-1.8 0V1.9c0-.5.4-.9.8-.9z"/>
       <path d="M15 15H9.6a.9.9 0 0 1 0-1.8h3.1l-4-4a.9.9 0 0 1 1.3-1.3l4 4V8.8a.9.9 0 0 1 1.8 0v5.3c0 .5-.4.9-.8.9z"/>
     </symbol>
+    <symbol id="i-note" viewBox="0 0 20 23">
+      <path d="M19 .8a.8.8 0 0 0-.9-.8L7.3 1.9a.9.9 0 0 0-.8.9v13a4.3 4.3 0 0 0-1.9-.4C2.1 15.4 0 16.9 0 18.9s2.1 3.6 4.6 3.6 4.6-1.6 4.6-3.6V7.7l8.9-1.5v6.7a4.3 4.3 0 0 0-1.9-.4c-2.5 0-4.6 1.6-4.6 3.6s2.1 3.6 4.6 3.6 4.6-1.6 4.6-3.6z"/>
+    </symbol>
     <symbol id="i-close" viewBox="0 0 10 10">
       <path d="M1.4.3 5 3.9 8.6.3a.8.8 0 0 1 1.1 1.1L6.1 5l3.6 3.6a.8.8 0 0 1-1.1 1.1L5 6.1 1.4 9.7A.8.8 0 0 1 .3 8.6L3.9 5 .3 1.4A.8.8 0 0 1 1.4.3z"/>
     </symbol>
@@ -401,11 +425,11 @@ footer a { color: var(--verdigris); }
     <h1>The cover gets its <em>own window</em></h1>
     <p class="standfirst">
       A cover panel inside the queue window cost 336&nbsp;pt and left one playlist row
-      standing. So: no panel. A <strong>62&nbsp;pt thumbnail</strong> in the top right,
-      and clicking it collapses the whole window into a square of nothing but artwork.
-      Move the mouse over it and the close button, the track, and the transport
-      fade up over the sleeve; move away and they're gone again.
-      Click the thumbnail below to try it.
+      standing. So: no panel. A <strong>28&nbsp;pt thumbnail</strong> tucked into the empty
+      top-right corner of the titlebar — where it displaces nothing at all — and clicking
+      it collapses the whole window into a square of pure artwork. Move the mouse over it
+      and the close button, the track and the transport fade up over the sleeve; move away
+      and they're gone again. Click the thumbnail below to try it.
     </p>
   </header>
 
@@ -437,6 +461,26 @@ footer a { color: var(--verdigris); }
           </div>
           <div class="opt">
             <div class="opt-label">
+              This track's artwork
+              <span class="hint">Watch the layout below the titlebar: nothing moves.</span>
+            </div>
+            <div class="seg" id="segArt" role="group" aria-label="Artwork">
+              <button type="button" data-v="cover">Embedded</button>
+              <button type="button" data-v="none">None</button>
+            </div>
+          </div>
+          <div class="opt">
+            <div class="opt-label">
+              Thumbnail position
+              <span class="hint">Hard into the corner, or inset to the 12&nbsp;pt gutter.</span>
+            </div>
+            <div class="seg" id="segThumb" role="group" aria-label="Thumbnail position">
+              <button type="button" data-v="corner">Corner</button>
+              <button type="button" data-v="gutter">Gutter</button>
+            </div>
+          </div>
+          <div class="opt">
+            <div class="opt-label">
               Cover controls
               <span class="hint">Pin them to study the overlay without holding the mouse still.</span>
             </div>
@@ -464,11 +508,16 @@ footer a { color: var(--verdigris); }
           <li>
             <p class="note-k">What the thumbnail displaces</p>
             <p class="note-b">
-              62&nbsp;pt square, right-aligned, exactly as tall as the title and transport
-              rows stacked. Everything to its left narrows by 72&nbsp;pt; the transport
-              re-centres in what's left, the volume button rides along at its right edge.
-              The waveform below stays full width. <strong>Nothing moves vertically</strong>,
-              so the playlist keeps all nine rows.
+              <strong>Nothing.</strong> The titlebar's right end is the one region of the
+              window that has always been empty — 28&nbsp;pt tall, traffic lights at the far
+              side, dead space in between. A 28&nbsp;pt square parked there leaves the
+              title, the transport, the volume button and the waveform exactly where they
+              are today, so a track with no cover doesn't shuffle the layout.
+            </p>
+            <p class="note-b">
+              The cost: that strip is also the window's drag region, and a control punches a
+              hole in it. 28&nbsp;pt of a 336&nbsp;pt bar, in the corner furthest from where
+              people grab a window — acceptable, but it is a real trade.
             </p>
           </li>
           <li>
@@ -510,8 +559,9 @@ footer a { color: var(--verdigris); }
         <span class="state-tag is-now">Queue</span>
         <p class="state-name">Thumbnail in the corner</p>
         <p class="state-desc">
-          The only change to today's window: a 62&nbsp;pt cover top right, showing a
-          corner glyph on hover so it reads as a door rather than a decoration.
+          The only change to today's window: a 28&nbsp;pt cover in the titlebar's dead
+          corner, showing a corner glyph on hover so it reads as a door rather than a
+          decoration.
         </p>
       </div>
       <div class="state-cap">
@@ -528,6 +578,50 @@ footer a { color: var(--verdigris); }
         <p class="state-desc">
           Close, track, artist and album, transport, waveform. Then it all goes away
           again.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>When there's no artwork</h2>
+    <p class="section-lede">
+      Plenty of files carry no embedded cover, so the square has to be worth opening
+      anyway — otherwise the thumbnail has to vanish for those tracks, and a playlist that
+      mixes both starts flickering. Three candidates, all at rest, all 336&nbsp;pt.
+    </p>
+
+    <div class="strip">
+      <div class="stage" id="phWaves"></div>
+      <div class="stage" id="phPeaks"></div>
+      <div class="stage" id="phBare"></div>
+
+      <div class="state-cap">
+        <span class="state-tag is-now">Recommended</span>
+        <p class="state-name">Din's own waves</p>
+        <p class="state-desc">
+          The icon motif, drawn live: layered sine hills with lit crests.
+          <code>scripts/generate_icon.py</code> already has the maths, and it's the one
+          image the app is always entitled to show.
+        </p>
+      </div>
+      <div class="state-cap">
+        <span class="state-tag">Per track</span>
+        <p class="state-name">The waveform as sleeve</p>
+        <p class="state-desc">
+          The track's own peaks, mirrored. Costs nothing —
+          <code>waveformPeaks</code> is already loaded — and every song gets a different
+          square. But the real waveform sits ten points below it in the overlay, so you're
+          showing one dataset twice.
+        </p>
+      </div>
+      <div class="state-cap">
+        <span class="state-tag">The honest minimum</span>
+        <p class="state-name">Nothing to show</p>
+        <p class="state-desc">
+          A note glyph on the list grey. Nobody would open a window for this — which is
+          itself the argument for hiding the thumbnail when a track has no art, rather than
+          inventing a sleeve.
         </p>
       </div>
     </div>
@@ -612,13 +706,18 @@ footer a { color: var(--verdigris); }
         </p>
       </li>
       <li>
-        <p class="note-k">Tracks with no embedded art</p>
+        <p class="note-k">Placeholder, or no thumbnail at all</p>
         <p class="note-b">
-          The thumbnail has nothing to show, and the cover window has nothing to be. Hide
-          the thumbnail and disable the menu item for those tracks — but then what happens
-          if you're <em>already</em> in cover mode and the next track has no art? Snapping
-          back to the queue mid-playlist is startling; holding a placeholder square is
-          honest. This one needs a decision, not a default.
+          If a track with no cover still has <em>something</em> to show, the thumbnail never
+          disappears and cover mode never has to snap back to the queue mid-playlist — the
+          nastiest edge case here just stops existing. That's the strongest argument for
+          drawing Din's waves rather than a note glyph, and it's an argument about
+          behaviour, not decoration.
+        </p>
+        <p class="note-b">
+          The counter-argument: a generated square pretends there's a cover when there
+          isn't. If that bothers you, hide the thumbnail for those tracks and decide
+          separately what cover mode does when the playlist walks into one.
         </p>
       </li>
       <li>
@@ -736,9 +835,100 @@ function drawWaveform(canvas, opts) {
   }
 }
 
+/* ---------------------- placeholders for tracks with no art ----------------
+   Three candidates, drawn at whatever size the box happens to be so the same
+   routine serves the 28pt thumbnail and the 336pt window.
+   -------------------------------------------------------------------------- */
+
+/* The app's own icon motif: layered sine hills, each with a lit crest that
+   blooms downward. Colours sampled from meta/icon.png. */
+function drawDinWaves(ctx, size) {
+  ctx.fillStyle = "#05060f";
+  ctx.fillRect(0, 0, size, size);
+
+  const waves = [
+    { base: 0.30, amp: 0.040, freq: 1.0, phase: 0.35 },
+    { base: 0.44, amp: 0.060, freq: 1.4, phase: 2.30 },
+    { base: 0.57, amp: 0.052, freq: 1.2, phase: 4.10 },
+    { base: 0.70, amp: 0.058, freq: 1.5, phase: 1.05 },
+    { base: 0.84, amp: 0.048, freq: 1.1, phase: 3.40 },
+  ];
+  const step = Math.max(1, size / 120);
+  // five crests turn to noise in a 28pt tile — thin them out when small
+  const layers = size < 80 ? waves.filter((_, i) => i % 2 === 0) : waves;
+
+  for (const w of layers) {
+    const yAt = x => size * (w.base + w.amp * Math.sin(w.freq * (x / size) * Math.PI * 2 + w.phase));
+
+    ctx.beginPath();
+    ctx.moveTo(0, yAt(0));
+    for (let x = step; x <= size; x += step) ctx.lineTo(x, yAt(x));
+    ctx.lineTo(size, size);
+    ctx.lineTo(0, size);
+    ctx.closePath();
+
+    const top = size * (w.base - w.amp);
+    const grad = ctx.createLinearGradient(0, top, 0, top + size * 0.26);
+    grad.addColorStop(0, "rgba(30,64,104,0.98)");
+    grad.addColorStop(0.35, "rgba(18,38,64,0.85)");
+    grad.addColorStop(1, "rgba(6,10,22,0.6)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, yAt(0));
+    for (let x = step; x <= size; x += step) ctx.lineTo(x, yAt(x));
+    ctx.lineWidth = Math.max(0.6, size / 420);
+    ctx.strokeStyle = "rgba(150,205,240,0.85)";
+    ctx.shadowColor = "rgba(120,190,235,0.55)";
+    ctx.shadowBlur = size / 90;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+}
+
+/* The track's own peaks, mirrored into a sleeve — a different square per song,
+   out of data the app has already computed. */
+function drawPeakSleeve(ctx, size) {
+  ctx.fillStyle = "#191a1b";
+  ctx.fillRect(0, 0, size, size);
+
+  const bw = size < 80 ? 1 : Math.max(2, Math.round(size / 112));
+  const gap = size < 80 ? 1 : Math.max(1, Math.round(bw / 2));
+  const total = bw + gap;
+  const count = Math.max(1, Math.floor(size / total));
+  const mid = size / 2;
+  const maxHalf = size * 0.36;
+
+  ctx.fillStyle = "rgba(255,255,255,0.20)";
+  for (let i = 0; i < count; i++) {
+    const idx = Math.min(Math.floor(i * PEAKS.length / count), PEAKS.length - 1);
+    const half = Math.max(Math.min(1, PEAKS[idx]), 0.02) * maxHalf;
+    ctx.fillRect(i * total, mid - half, bw, half * 2);
+  }
+}
+
+function drawPlaceholder(canvas, style, scale) {
+  const dpr = window.devicePixelRatio || 1;
+  const px = canvas.clientWidth;
+  if (!px) return;
+  const back = Math.round(px * scale * dpr);
+  if (canvas.width !== back || canvas.height !== back) { canvas.width = back; canvas.height = back; }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  ctx.clearRect(0, 0, px, px);
+  if (style === "peaks") drawPeakSleeve(ctx, px);
+  else drawDinWaves(ctx, px);
+}
+
 /* ------------------------------ window factory ----------------------------- */
 
 const icon = (id, w, h) => `<svg width="${w}" height="${h}" aria-hidden="true"><use href="#i-${id}"/></svg>`;
+
+const placeholderMarkup = style =>
+  style === "bare"
+    ? `<span class="ph ph-bare">${icon("note", 62, 72)}</span>`
+    : `<span class="ph"><canvas></canvas></span>`;
 
 const transportMarkup = () => `
   <div class="transport">
@@ -759,24 +949,25 @@ function makeWindow(opts) {
   el.className = "win" + (opts.interactive ? "" : " is-static");
   el.dataset.mode = opts.mode;
   el.dataset.pin = opts.pin || "off";
+  el.dataset.art = opts.art || "cover";
+  el.dataset.thumb = opts.thumb || "corner";
 
   el.innerHTML = `
     <div class="layer layer-queue${opts.mode === "queue" ? " is-on" : ""}">
-      <div class="titlebar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span></div>
+      <div class="titlebar">
+        <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+        <button class="thumb" type="button" aria-label="Show album cover">
+          <img src="${ART}" alt="">
+          ${placeholderMarkup(opts.placeholder)}
+          <span class="thumb-veil">${icon("expand", 11, 11)}</span>
+        </button>
+      </div>
       <div class="controls">
-        <div class="np-row">
-          <div class="np-left">
-            <div>
-              <div class="np-title">La fleur gravité</div>
-              <div class="np-sub">${SUBTITLE}</div>
-            </div>
-            ${transportMarkup()}
-          </div>
-          <button class="thumb" type="button" aria-label="Show album cover">
-            <img src="${ART}" alt="">
-            <span class="thumb-veil">${icon("expand", 15, 15)}</span>
-          </button>
+        <div>
+          <div class="np-title">La fleur gravité</div>
+          <div class="np-sub">${SUBTITLE}</div>
         </div>
+        ${transportMarkup()}
         ${waveMarkup()}
       </div>
       <div class="statusbar">
@@ -801,6 +992,7 @@ function makeWindow(opts) {
     <div class="layer layer-cover${opts.mode === "cover" ? " is-on" : ""}">
       <div class="cover">
         <img src="${ART}" alt="Album cover of La fille verte by Syl Kougaï">
+        ${placeholderMarkup(opts.placeholder)}
         <div class="cover-overlay">
           <div class="cover-top">
             <button class="close-btn" type="button" aria-label="Back to the queue">${icon("close", 9, 9)}</button>
@@ -828,8 +1020,13 @@ function makeWindow(opts) {
   };
 
   const canvases = [...el.querySelectorAll(".wave canvas")];
+  const phCanvases = [...el.querySelectorAll(".ph canvas")];
   const curEls = [...el.querySelectorAll(".t-cur")];
   const playBtns = [...el.querySelectorAll(".ib.play")];
+
+  state.drawPlaceholders = () => {
+    for (const c of phCanvases) drawPlaceholder(c, opts.placeholder, state.scale);
+  };
 
   state.progress = () => state.dragging ? state.dragProgress : clock.t / DURATION;
 
@@ -910,49 +1107,61 @@ function mount(stageId, opts) {
     }
     stage.style.width = (w.el.offsetWidth * w.scale) + "px";
     stage.style.height = (stageHeight(w.el) * w.scale) + "px";
+    w.drawPlaceholders();
   };
   return w;
 }
 
-const live = mount("liveStage", { mode: "queue", scale: 1.5, fit: true, interactive: true });
-mount("stripA", { mode: "queue", scale: 1, delay: 120 });
-mount("stripB", { mode: "cover", scale: 1, delay: 240 });
-mount("stripC", { mode: "cover", pin: "on", scale: 1, delay: 360 });
+const live = mount("liveStage", { mode: "queue", placeholder: "waves", scale: 1.5, fit: true, interactive: true });
+mount("stripA", { mode: "queue", placeholder: "waves", scale: 1, delay: 120 });
+mount("stripB", { mode: "cover", placeholder: "waves", scale: 1, delay: 240 });
+mount("stripC", { mode: "cover", pin: "on", placeholder: "waves", scale: 1, delay: 360 });
+
+// the three empty-state candidates, all at rest
+mount("phWaves", { mode: "cover", art: "none", placeholder: "waves", scale: 1, delay: 120 });
+mount("phPeaks", { mode: "cover", art: "none", placeholder: "peaks", scale: 1, delay: 240 });
+mount("phBare",  { mode: "cover", art: "none", placeholder: "bare",  scale: 1, delay: 360 });
 
 function render() { for (const w of windows) w.render(); }
 function relayout() { for (const w of windows) w.resize(); render(); }
 
 /* ------------------------------ page controls ----------------------------- */
 
-const segMode = document.getElementById("segMode");
-const segPin = document.getElementById("segPin");
+const segs = {
+  mode:  document.getElementById("segMode"),
+  art:   document.getElementById("segArt"),
+  thumb: document.getElementById("segThumb"),
+  pin:   document.getElementById("segPin"),
+};
 
-function setMode(mode) {
-  live.el.dataset.mode = mode;
-  for (const l of live.el.querySelectorAll(".layer")) {
-    l.classList.toggle("is-on", l.classList.contains("layer-" + mode));
+function setMode(mode) { setOption("mode", mode); }
+
+function setOption(key, value) {
+  live.el.dataset[key] = value;
+  if (key === "mode") {
+    for (const l of live.el.querySelectorAll(".layer")) {
+      l.classList.toggle("is-on", l.classList.contains("layer-" + value));
+    }
+    live.stage.style.height = (stageHeight(live.el) * live.scale) + "px";
   }
-  live.stage.style.height = (stageHeight(live.el) * live.scale) + "px";
   syncSegs();
+  // the placeholder canvases have no width until they're shown
+  requestAnimationFrame(() => live.drawPlaceholders());
 }
-function setPin(v) { live.el.dataset.pin = v; syncSegs(); }
 
 function syncSegs() {
-  for (const b of segMode.querySelectorAll("button")) {
-    b.setAttribute("aria-pressed", String(b.dataset.v === live.el.dataset.mode));
-  }
-  for (const b of segPin.querySelectorAll("button")) {
-    b.setAttribute("aria-pressed", String(b.dataset.v === live.el.dataset.pin));
+  for (const [key, seg] of Object.entries(segs)) {
+    for (const b of seg.querySelectorAll("button")) {
+      b.setAttribute("aria-pressed", String(b.dataset.v === live.el.dataset[key]));
+    }
   }
 }
-segMode.addEventListener("click", ev => {
-  const b = ev.target.closest("button");
-  if (b) setMode(b.dataset.v);
-});
-segPin.addEventListener("click", ev => {
-  const b = ev.target.closest("button");
-  if (b) setPin(b.dataset.v);
-});
+for (const [key, seg] of Object.entries(segs)) {
+  seg.addEventListener("click", ev => {
+    const b = ev.target.closest("button");
+    if (b) setOption(key, b.dataset.v);
+  });
+}
 syncSegs();
 
 /* --------------------------------- the loop -------------------------------- */
