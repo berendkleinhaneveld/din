@@ -267,23 +267,36 @@ footer a { color: var(--verdigris); }
 
 .controls { flex: none; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
 
-.np-title { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.np-sub { font-size: 11px; color: var(--label-2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 1.25 puts the transport and waveform within a point of where they sit in
+   meta/Screenshot.png — the browser's 1.6 body leading is looser than AppKit's. */
+.np-title { font-size: 13px; font-weight: 600; line-height: 1.25; letter-spacing: -0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-sub { font-size: 11px; line-height: 1.25; color: var(--label-2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The now-playing text reserves the thumbnail's column so titles never run
+   under it. Both thumbnail positions land on the same left edge, so this one
+   rule covers them. */
+.layer-queue .np { padding-right: calc(var(--thumb-h, 67px) + 10px); }
 
 /* The whole proposal, in 28 points — parked in the one part of the window that
    was already empty, so nothing below it has to move when there's no artwork. */
+/* Height is measured, not guessed: window top → bottom of the artist/album
+   line. The transport row below it never moves. */
 .thumb {
   position: absolute; top: 0; right: 0;
-  width: 28px; height: 28px;
+  width: var(--thumb-h, 67px); height: var(--thumb-h, 67px);
   padding: 0; border: 0; overflow: hidden;
   background: #1b1b1b; cursor: pointer;
-  box-shadow: -0.5px 0 0 rgba(255,255,255,0.12), 0 0.5px 0 rgba(255,255,255,0.12);
+  /* the window's own 10pt radius clips the outer corner; the inner one is ours */
+  border-bottom-left-radius: 6px;
+  box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.10);
 }
-/* the alternative: inset to the 12pt gutter, right-aligned under the volume button */
+/* The alternative: inset by the window's own 12pt gutter on the top and the
+   side alike, so the corner reads as square. Same left edge either way. */
 .win[data-thumb="gutter"] .thumb {
-  top: 3px; right: 12px;
-  width: 22px; height: 22px;
-  border-radius: 3px;
+  top: 12px; right: 12px;
+  width: calc(var(--thumb-h, 67px) - 12px);
+  height: calc(var(--thumb-h, 67px) - 12px);
+  border-radius: 4px;
   box-shadow: 0 0 0 0.5px rgba(255,255,255,0.16);
 }
 .thumb img, .thumb .ph { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -466,11 +479,12 @@ footer a { color: var(--verdigris); }
     <h1>The cover gets its <em>own window</em></h1>
     <p class="standfirst">
       A cover panel inside the queue window cost 336&nbsp;pt and left one playlist row
-      standing. So: no panel. A <strong>28&nbsp;pt thumbnail</strong> tucked into the empty
-      top-right corner of the titlebar — where it displaces nothing at all — and clicking
-      it collapses the whole window into a square of pure artwork. Move the mouse over it
-      and the close button, the track and the transport fade up over the sleeve; move away
-      and they're gone again. Click the thumbnail below to try it.
+      standing. So: no panel. A <strong>67&nbsp;pt thumbnail</strong> in the top-right corner
+      — running from the window's top edge down to the bottom of the artist line, the
+      tallest square that still displaces nothing — and clicking it collapses the whole
+      window into a square of pure artwork. Move the mouse over it and the close button, the
+      track and the transport fade up over the sleeve; move away and they're gone again.
+      Click the thumbnail below to try it.
     </p>
   </header>
 
@@ -513,7 +527,7 @@ footer a { color: var(--verdigris); }
           <div class="opt">
             <div class="opt-label">
               Thumbnail position
-              <span class="hint">Hard into the corner, or inset to the 12&nbsp;pt gutter.</span>
+              <span class="hint">Bled into the corner, or inset by 12&nbsp;pt on the top and the side alike.</span>
             </div>
             <div class="seg" id="segThumb" role="group" aria-label="Thumbnail position">
               <button type="button" data-v="corner">Corner</button>
@@ -549,16 +563,30 @@ footer a { color: var(--verdigris); }
           <li>
             <p class="note-k">What the thumbnail displaces</p>
             <p class="note-b">
-              <strong>Nothing.</strong> The titlebar's right end is the one region of the
-              window that has always been empty — 28&nbsp;pt tall, traffic lights at the far
-              side, dead space in between. A 28&nbsp;pt square parked there leaves the
-              title, the transport, the volume button and the waveform exactly where they
-              are today, so a track with no cover doesn't shuffle the layout.
+              <strong>Nothing below it.</strong> The square runs from the window's top edge
+              to the bottom of the artist line — 67&nbsp;pt as the type sits today — which is
+              the last horizontal band before the transport row. The controls, the volume
+              button and the waveform stay exactly where they are, so a track with no cover
+              never shuffles the layout.
             </p>
             <p class="note-b">
-              The cost: that strip is also the window's drag region, and a control punches a
-              hole in it. 28&nbsp;pt of a 336&nbsp;pt bar, in the corner furthest from where
-              people grab a window — acceptable, but it is a real trade.
+              It's measured, not hard-coded: bind it to the bottom of the subtitle and it
+              stays true if the type ever changes. Both positions land on the same left edge
+              — 67 in from the right, whether that's 67 flush or 55 inset by the gutter — so
+              the title's reserved column doesn't change when you switch between them.
+            </p>
+          </li>
+          <li>
+            <p class="note-k">The one thing it does cost</p>
+            <p class="note-b">
+              77&nbsp;pt of title width, reserved so a long track name never runs under the
+              cover. That reservation has to be permanent — if it were released whenever a
+              track had no artwork, titles would reflow every time the playlist crossed one.
+              Which is one more reason to draw a placeholder rather than hide the thumbnail.
+            </p>
+            <p class="note-b">
+              Second-order: the titlebar is the window's drag region, and a control punches a
+              hole in it. Still the corner furthest from where people grab a window.
             </p>
           </li>
           <li>
@@ -600,9 +628,8 @@ footer a { color: var(--verdigris); }
         <span class="state-tag is-now">Queue</span>
         <p class="state-name">Thumbnail in the corner</p>
         <p class="state-desc">
-          The only change to today's window: a 28&nbsp;pt cover in the titlebar's dead
-          corner, showing a corner glyph on hover so it reads as a door rather than a
-          decoration.
+          The only change to today's window: a 67&nbsp;pt cover in the top-right corner,
+          showing a corner glyph on hover so it reads as a door rather than a decoration.
         </p>
       </div>
       <div class="state-cap">
@@ -1091,11 +1118,11 @@ function makeWindow(opts) {
         <button class="thumb" type="button" aria-label="Show album cover">
           <img src="${ART}" alt="">
           ${placeholderMarkup(opts.placeholder)}
-          <span class="thumb-veil">${icon("expand", 11, 11)}</span>
+          <span class="thumb-veil">${icon("expand", 15, 15)}</span>
         </button>
       </div>
       <div class="controls">
-        <div>
+        <div class="np">
           <div class="np-title">La fleur gravité</div>
           <div class="np-sub">${SUBTITLE}</div>
         </div>
@@ -1178,6 +1205,19 @@ function makeWindow(opts) {
       state.stage.style.height = (h * state.scale) + "px";
     }
     if (state.onSize) state.onSize(state);
+  };
+
+  /* The thumbnail is as tall as the run from the window's top edge to the
+     bottom of the artist/album line — measured off the live layout rather than
+     hard-coded, so it stays true if the type metrics shift. */
+  state.measureThumb = () => {
+    const sub = el.querySelector(".layer-queue .np-sub");
+    if (!sub) return;
+    const h = (sub.getBoundingClientRect().bottom - el.getBoundingClientRect().top) / state.scale;
+    if (h > 0) {
+      state.thumbH = Math.round(h);
+      el.style.setProperty("--thumb-h", state.thumbH + "px");
+    }
   };
 
   state.setMode = mode => {
@@ -1306,7 +1346,7 @@ function mount(stageId, opts) {
   stage.appendChild(w.el);
   stage.style.setProperty("--s", opts.scale);
   w.stage = stage;
-  w.resize = () => { w.applySize(); w.drawPlaceholders(); };
+  w.resize = () => { w.applySize(); w.measureThumb(); w.drawPlaceholders(); };
   w.applySize();
   return w;
 }
