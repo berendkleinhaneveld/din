@@ -18,12 +18,24 @@ actor WaveformGenerator {
     /// one allocation — which is both wasteful and liable to fail outright.
     private static let framesPerRead: AVAudioFrameCount = 1 << 18  // ~6 s at 44.1 kHz
 
-    private let cacheDirectory: URL = {
-        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
-        let dir = caches.appendingPathComponent("din-waveforms", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }()
+    private let cacheDirectory: URL
+
+    /// - Parameter cacheDirectory: where generated peaks are cached. Defaults to a
+    ///   folder in the user's caches directory; tests pass a temporary one so a test
+    ///   run never reads or writes the cache the app itself uses.
+    init(cacheDirectory: URL? = nil) {
+        self.cacheDirectory = cacheDirectory ?? Self.defaultCacheDirectory
+        try? FileManager.default.createDirectory(at: self.cacheDirectory, withIntermediateDirectories: true)
+    }
+
+    private static var defaultCacheDirectory: URL {
+        // Falling back to the temporary directory keeps a missing caches directory
+        // from taking the app down on launch.
+        let caches =
+            FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return caches.appendingPathComponent("din-waveforms", isDirectory: true)
+    }
 
     /// Currently running generation tasks, keyed by file URL. Used for cancellation.
     private var inFlightTasks: [URL: Task<[Float], Error>] = [:]
