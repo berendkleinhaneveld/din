@@ -1,0 +1,957 @@
+<title>Din Icon Directions</title>
+<style>
+  :root {
+    --bg: #EDEFF3;
+    --card: #FFFFFF;
+    --ink: #101319;
+    --muted: #5A6373;
+    --line: #DFE3EA;
+    --line-soft: #E9ECF1;
+    --accent: #0F6E80;
+    --accent-soft: #E1EFF2;
+    --plate-edge: rgba(16, 19, 25, 0.10);
+
+    --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    --body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0A0C11;
+      --card: #13161D;
+      --ink: #E9ECF2;
+      --muted: #8B95A6;
+      --line: #232936;
+      --line-soft: #1B202A;
+      --accent: #57C4D6;
+      --accent-soft: #0F262B;
+      --plate-edge: rgba(255, 255, 255, 0.10);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0A0C11;
+    --card: #13161D;
+    --ink: #E9ECF2;
+    --muted: #8B95A6;
+    --line: #232936;
+    --line-soft: #1B202A;
+    --accent: #57C4D6;
+    --accent-soft: #0F262B;
+    --plate-edge: rgba(255, 255, 255, 0.10);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px 96px;
+  }
+
+  /* ---------- header ---------- */
+
+  header {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 88px 0 56px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 1.04;
+    letter-spacing: -0.032em;
+    font-weight: 600;
+    text-wrap: balance;
+    max-width: 20ch;
+  }
+
+  .lead {
+    margin: 0;
+    max-width: 64ch;
+    font-size: 1.2rem;
+    line-height: 1.55;
+    color: var(--muted);
+    text-wrap: pretty;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 28px;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .facts b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ---------- direction sections ---------- */
+
+  .dir {
+    padding: 72px 0 0;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .dir:first-of-type { border-top: none; }
+
+  .dir-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 18px;
+    margin-bottom: 32px;
+  }
+
+  .dir-head h2 {
+    margin: 0;
+    font-family: var(--display);
+    font-size: 2rem;
+    letter-spacing: -0.022em;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .tagline {
+    font-size: 1rem;
+    color: var(--muted);
+  }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .plate {
+    border: 1px solid var(--plate-edge);
+    border-radius: 20px;
+    padding: 40px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 34px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .plate.light {
+    background:
+      radial-gradient(120% 90% at 20% 0%, #FCFDFF 0%, rgba(252, 253, 255, 0) 60%),
+      linear-gradient(155deg, #F4F6FA 0%, #E6EAF2 58%, #D9DFEA 100%);
+  }
+
+  .plate.dark {
+    background:
+      radial-gradient(120% 90% at 20% 0%, #232834 0%, rgba(35, 40, 52, 0) 60%),
+      linear-gradient(155deg, #161A22 0%, #0D1015 58%, #101520 100%);
+  }
+
+  .plate-label {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+
+  .plate.light .plate-label { color: #7C8598; }
+  .plate.dark .plate-label { color: #6E7889; }
+
+  .hero-slot {
+    display: flex;
+    justify-content: center;
+  }
+
+  .ladder {
+    display: flex;
+    align-items: flex-end;
+    gap: 26px;
+    padding-top: 22px;
+    width: 100%;
+    justify-content: center;
+    border-top: 1px solid;
+  }
+
+  .plate.light .ladder { border-color: rgba(16, 19, 25, 0.09); }
+  .plate.dark .ladder { border-color: rgba(255, 255, 255, 0.08); }
+
+  .rung {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rung span {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .plate.light .rung span { color: #808A9C; }
+  .plate.dark .rung span { color: #6E7889; }
+
+  /* ---------- notes ---------- */
+
+  .notes {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 40px;
+    margin-top: 34px;
+    padding: 30px 32px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+
+  .notes p {
+    margin: 0 0 14px;
+    max-width: 62ch;
+  }
+
+  .notes p:last-child { margin-bottom: 0; }
+
+  .notes .verdict {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .notes .verdict b {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  dl.spec {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0;
+    align-content: start;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  dl.spec dt {
+    color: var(--muted);
+    padding: 7px 20px 7px 0;
+    border-bottom: 1px solid var(--line-soft);
+    white-space: nowrap;
+  }
+
+  dl.spec dd {
+    margin: 0;
+    padding: 7px 0;
+    text-align: right;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  dl.spec dt:last-of-type, dl.spec dd:last-of-type { border-bottom: none; }
+
+  .spec-title {
+    grid-column: 1 / -1;
+    font-family: var(--body);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    color: var(--accent);
+    padding-bottom: 10px;
+  }
+
+  /* ---------- closing ---------- */
+
+  .closing {
+    margin-top: 80px;
+    padding-top: 40px;
+    border-top: 1px solid var(--line);
+  }
+
+  .closing h2 {
+    margin: 0 0 20px;
+    font-family: var(--display);
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  .closing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 28px;
+  }
+
+  .closing h3 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .closing p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--muted);
+    max-width: 46ch;
+  }
+
+  .closing code {
+    font-family: var(--mono);
+    font-size: 0.82em;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ---------- icon primitives ---------- */
+
+  .iconwrap {
+    filter: drop-shadow(0 calc(var(--s) * 0.035) calc(var(--s) * 0.07) rgba(6, 10, 20, 0.30));
+    line-height: 0;
+  }
+
+  .icon {
+    position: relative;
+    width: var(--s);
+    height: var(--s);
+    clip-path: url(#sq-clip);
+    isolation: isolate;
+  }
+
+  .icon .ground,
+  .icon .glass,
+  .icon .layer-svg,
+  .icon .rim {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .icon .glass {
+    -webkit-backdrop-filter: var(--bd);
+    backdrop-filter: var(--bd);
+  }
+
+  .icon .layer-svg,
+  .icon .rim { pointer-events: none; }
+
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  @media (max-width: 900px) {
+    .wrap { padding: 0 20px 72px; }
+    .stage { grid-template-columns: 1fr; }
+    .notes { grid-template-columns: 1fr; gap: 26px; }
+  }
+</style>
+
+<svg class="defs" aria-hidden="true"><defs id="defs"></defs></svg>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Din · app icon</div>
+    <h1>Three glass directions for the Din icon</h1>
+    <p class="lead">
+      The current icon already has the right idea — overlapping waves, lit crests, deep water. What it
+      doesn't have is <em>material</em>. These three directions rebuild it in the glass language macOS 26
+      and iOS 26 now use for icons: layers that blur what's behind them, edges that catch light, and a
+      contact shadow where each layer meets the one behind it.
+    </p>
+    <div class="facts">
+      <span>Canvas <b>1024 × 1024</b></span>
+      <span>Shape <b>superellipse, n = 5</b></span>
+      <span>Frost <b>live backdrop blur</b></span>
+      <span>Variants <b>light + dark</b></span>
+    </div>
+  </header>
+
+  <section class="dir">
+    <div class="dir-head">
+      <h2>Tide</h2>
+      <div class="tagline">Five sheets — the closest read of today's icon</div>
+    </div>
+    <div class="stage" data-mount="tide"></div>
+    <div class="notes">
+      <div>
+        <p>
+          Same five waves you have now, same rhythm, rebuilt as stacked panes of frosted glass. Each sheet
+          blurs and brightens everything behind it, so the water gets progressively milkier toward the
+          front instead of merely lighter. The crest is a hairline specular with a soft bloom under it, and
+          every sheet drops a shadow onto the one behind — that shadow is what sells the layers as separate
+          pieces of material rather than shapes stacked in a single plane.
+        </p>
+        <p class="verdict">
+          <b>Reads best at 128px and up.</b> Five layers in a 1024 canvas leaves about 120px of vertical
+          rhythm per sheet. It survives 64px. At 32 the five crests crowd into a ripple, and at 16 there is
+          no wave left to read — just a blue field with a texture. Beautiful in the Dock, anonymous in a
+          menu bar.
+        </p>
+      </div>
+      <dl class="spec">
+        <div class="spec-title">Recipe</div>
+        <dt>Glass layers</dt><dd>5</dd>
+        <dt>Backdrop blur</dt><dd>3.2% of size</dd>
+        <dt>Tint alpha</dt><dd>0.13 → 0.24</dd>
+        <dt>Specular width</dt><dd>0.30% of size</dd>
+        <dt>Crest amplitude</dt><dd>2.6% → 4.6%</dd>
+        <dt>Contact shadow</dt><dd>2.6% wide, σ 0.9%</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="dir">
+    <div class="dir-head">
+      <h2>Swell</h2>
+      <div class="tagline">Three sheets, deeper water, built to survive 32px</div>
+    </div>
+    <div class="stage" data-mount="swell"></div>
+    <div class="notes">
+      <div>
+        <p>
+          Fewer waves, much bigger. Amplitude roughly doubles and every crest is tilted a few degrees
+          off horizontal, so the icon gains a diagonal it currently lacks — at thumbnail size that
+          diagonal is the whole silhouette. The ground carries the colour here, a warm horizon falling
+          into deep teal, while the glass stays close to neutral. What tints each pane is the light
+          coming through it, not paint on it, which is how Apple's material actually behaves.
+        </p>
+        <p class="verdict">
+          <b>The one I'd ship.</b> Still unmistakably the Din icon, still legible at 32px, and at 16px it
+          keeps one crest and a horizon instead of dissolving. The warm-to-cool ground also gives it a
+          place on a crowded Dock that another five-layer blue doesn't get.
+        </p>
+      </div>
+      <dl class="spec">
+        <div class="spec-title">Recipe</div>
+        <dt>Glass layers</dt><dd>3</dd>
+        <dt>Backdrop blur</dt><dd>4.5% of size</dd>
+        <dt>Tint alpha</dt><dd>0.16 → 0.30</dd>
+        <dt>Specular width</dt><dd>0.38% of size</dd>
+        <dt>Crest amplitude</dt><dd>6.6% → 8.8%</dd>
+        <dt>Contact shadow</dt><dd>3.4% wide, σ 1.6%</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="dir">
+    <div class="dir-head">
+      <h2>Ribbon</h2>
+      <div class="tagline">Bands rather than sheets — overlap you can actually see</div>
+    </div>
+    <div class="stage" data-mount="ribbon"></div>
+    <div class="notes">
+      <div>
+        <p>
+          The departure. Instead of filled sheets, three tilted bands of glass float over the ground, each
+          lit on both edges — bright on top, dim underneath, the way a real slab of glass catches a room.
+          Because every band is its own pane, the places where they cross get double blur and double tint,
+          and those crossings become the brightest events in the icon. It's the most literal answer to
+          "waves overlapping each other," and the most current-looking of the three.
+        </p>
+        <p class="verdict">
+          <b>The risky one.</b> It trades the water metaphor for a material one — this reads as
+          <em>equaliser</em> more than <em>sea</em>, and the crossings that make it work are gone by 32px.
+          Worth having on the wall, and the direction that would age best if Apple pushes the glass
+          language further.
+        </p>
+      </div>
+      <dl class="spec">
+        <div class="spec-title">Recipe</div>
+        <dt>Glass bands</dt><dd>3</dd>
+        <dt>Band thickness</dt><dd>15.6% of size</dd>
+        <dt>Tilt</dt><dd>−7°</dd>
+        <dt>Backdrop blur</dt><dd>3.6% of size</dd>
+        <dt>Tint alpha</dt><dd>0.12 – 0.20</dd>
+        <dt>Specular</dt><dd>both edges</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="closing">
+    <h2>Taking it to code</h2>
+    <div class="closing-grid">
+      <div>
+        <h3>The frost is real here</h3>
+        <p>
+          Every pane above is a live <code>backdrop-filter</code> clipped to its wave path, so what you see
+          is genuine refraction of the layers behind it — not a painted approximation.
+        </p>
+      </div>
+      <div>
+        <h3>Porting to Pillow</h3>
+        <p>
+          Same idea, four steps per layer: composite what's below, <code>GaussianBlur</code> that composite,
+          paste it back through the wave mask, then draw the specular and the cast shadow. The current
+          script's per-pixel loops go away.
+        </p>
+      </div>
+      <div>
+        <h3>Still to do</h3>
+        <p>
+          macOS 26 also takes <b>Clear</b> and <b>Tinted</b> versions of an icon. Both fall out of whichever
+          direction wins almost for free — drop the ground for Clear, collapse the tints to one hue for
+          Tinted.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const VB = 1000;
+  const defs = document.getElementById("defs");
+
+  function svgEl(name, attrs) {
+    const el = document.createElementNS(SVGNS, name);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  const r4 = (n) => Math.round(n * 10000) / 10000;
+  const r1 = (n) => Math.round(n * 10) / 10;
+
+  /* ---------- geometry ---------- */
+
+  // Superellipse |x|^n + |y|^n = 1, the standard approximation of the Apple icon shape.
+  function squircle(n, samples) {
+    const pts = [];
+    for (let i = 0; i < samples; i++) {
+      const t = (i / samples) * Math.PI * 2;
+      const c = Math.cos(t), s = Math.sin(t);
+      const x = Math.sign(c) * Math.pow(Math.abs(c), 2 / n);
+      const y = Math.sign(s) * Math.pow(Math.abs(s), 2 / n);
+      pts.push([0.5 + 0.5 * x, 0.5 + 0.5 * y]);
+    }
+    return pts;
+  }
+
+  // Crest of one wave, sampled across the full width.
+  function crest(w, samples) {
+    const pts = [];
+    for (let i = 0; i <= samples; i++) {
+      const x = (i / samples) * VB;
+      const tilt = (w.tilt || 0) * (x - VB / 2);
+      const y = w.y + tilt + w.amp * Math.sin(w.cycles * 2 * Math.PI * (x / VB) + w.phase * 2 * Math.PI);
+      pts.push([x, y]);
+    }
+    return pts;
+  }
+
+  const pathFrom = (pts, close, scale) =>
+    pts.map((p, i) => (i ? "L" : "M") + r4(p[0] / scale) + "," + r4(p[1] / scale)).join(" ") + (close ? "Z" : "");
+
+  // A sheet: crest line, then down to the bottom of the canvas.
+  function sheetPath(pts, scale) {
+    return pathFrom(pts, false, scale) + " L" + r4(VB / scale) + "," + r4(VB / scale) +
+           " L0," + r4(VB / scale) + " Z";
+  }
+
+  // A band: top edge left-to-right, bottom edge right-to-left.
+  function bandPath(top, bottom, scale) {
+    return pathFrom(top, false, scale) + " " +
+           bottom.slice().reverse().map((p) => "L" + r4(p[0] / scale) + "," + r4(p[1] / scale)).join(" ") + " Z";
+  }
+
+  /* ---------- shared defs ---------- */
+
+  const sqPts = squircle(5, 512);
+  const sqClip = svgEl("clipPath", { id: "sq-clip", clipPathUnits: "objectBoundingBox" });
+  sqClip.appendChild(svgEl("path", { d: pathFrom(sqPts, true, 1) }));
+  defs.appendChild(sqClip);
+  defs.appendChild(svgEl("path", { id: "sq-path", d: pathFrom(sqPts.map((p) => [p[0] * VB, p[1] * VB]), true, 1) }));
+
+  [["blur-s", 4], ["blur-m", 9], ["blur-l", 16], ["blur-xl", 26]].forEach(([id, sd]) => {
+    const f = svgEl("filter", {
+      id: id, filterUnits: "userSpaceOnUse", x: -200, y: -200, width: VB + 400, height: VB + 400
+    });
+    f.appendChild(svgEl("feGaussianBlur", { stdDeviation: sd }));
+    defs.appendChild(f);
+  });
+
+  function rimGradient(id, top, bottom) {
+    const g = svgEl("linearGradient", { id: id, x1: 0, y1: 0, x2: 0, y2: 1 });
+    const s1 = svgEl("stop", { offset: "0", "stop-color": top[0] });
+    s1.setAttribute("stop-opacity", top[1]);
+    const s2 = svgEl("stop", { offset: "0.45", "stop-color": top[0] });
+    s2.setAttribute("stop-opacity", top[1] * 0.25);
+    const s3 = svgEl("stop", { offset: "1", "stop-color": bottom[0] });
+    s3.setAttribute("stop-opacity", bottom[1]);
+    g.append(s1, s2, s3);
+    defs.appendChild(g);
+  }
+  rimGradient("rim-light", ["#FFFFFF", 0.95], ["#FFFFFF", 0.35]);
+  rimGradient("rim-dark", ["#FFFFFF", 0.42], ["#8FD4F0", 0.16]);
+
+  // A lit edge is never evenly bright. These masks fade the speculars along their length so
+  // the crests read as light catching a surface rather than as drawn lines.
+  [["spec-mask-a", [0.30, 0.55, 1.00, 0.62, 0.22]],
+   ["spec-mask-b", [0.22, 0.85, 0.55, 0.95, 0.35]]].forEach(([id, ops]) => {
+    const g = svgEl("linearGradient", { id: id + "-g", x1: 0, y1: 0, x2: 1, y2: 0 });
+    ops.forEach((o, i) => {
+      const s = svgEl("stop", { offset: i / (ops.length - 1), "stop-color": "#fff" });
+      s.setAttribute("stop-opacity", o);
+      g.appendChild(s);
+    });
+    defs.appendChild(g);
+    const m = svgEl("mask", { id: id, maskUnits: "userSpaceOnUse", x: 0, y: 0, width: VB, height: VB });
+    m.appendChild(svgEl("rect", { x: 0, y: 0, width: VB, height: VB, fill: "url(#" + id + "-g)" }));
+    defs.appendChild(m);
+  });
+
+  /* ---------- directions ---------- */
+  // tint: [alpha at crest, alpha at bottom of the falloff]
+  // fade: how far below the crest the tint fades out, as a fraction of the canvas
+
+  const DIRECTIONS = {
+    tide: {
+      light: {
+        rim: "rim-light",
+        ground:
+          "radial-gradient(90% 66% at 76% 4%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0) 58%)," +
+          "radial-gradient(46% 30% at 20% 60%, rgba(255,255,255,0.60) 0%, rgba(255,255,255,0) 62%)," +
+          "radial-gradient(42% 28% at 80% 86%, rgba(28,124,186,0.50) 0%, rgba(28,124,186,0) 62%)," +
+          "linear-gradient(178deg, #E8F6FF 0%, #BFE2F7 32%, #7DC0E7 64%, #3D93C9 100%)",
+        blur: 0.032,
+        extra: "saturate(1.06) brightness(1.012)",
+        waves: [
+          { y: 300, amp: 26, cycles: 1.00, phase: 0.12, tintColor: "255,255,255", tint: [0.19, 0.0], fade: 0.20,
+            spec: "rgba(255,255,255,0.92)", specW: 3, bloom: "rgba(255,255,255,0.40)", bloomW: 15,
+            shadow: "rgba(20,62,100,0.26)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 420, amp: 40, cycles: 1.35, phase: 0.58, tintColor: "255,255,255", tint: [0.20, 0.0], fade: 0.19,
+            spec: "rgba(255,255,255,0.94)", specW: 3, bloom: "rgba(255,255,255,0.42)", bloomW: 15,
+            shadow: "rgba(20,62,100,0.27)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 544, amp: 46, cycles: 1.10, phase: 0.20, tintColor: "255,255,255", tint: [0.21, 0.0], fade: 0.18,
+            spec: "rgba(255,255,255,0.96)", specW: 3, bloom: "rgba(255,255,255,0.44)", bloomW: 15,
+            shadow: "rgba(20,62,100,0.28)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 672, amp: 40, cycles: 1.50, phase: 0.80, tintColor: "255,255,255", tint: [0.22, 0.0], fade: 0.17,
+            spec: "rgba(255,255,255,0.98)", specW: 3, bloom: "rgba(255,255,255,0.46)", bloomW: 15,
+            shadow: "rgba(20,62,100,0.29)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 796, amp: 32, cycles: 1.25, phase: 0.42, tintColor: "255,255,255", tint: [0.24, 0.02], fade: 0.16,
+            spec: "rgba(255,255,255,1)", specW: 3, bloom: "rgba(255,255,255,0.48)", bloomW: 15,
+            shadow: "rgba(20,62,100,0.30)", shadowW: 26, shadowBlur: "blur-m" }
+        ]
+      },
+      dark: {
+        rim: "rim-dark",
+        ground:
+          "radial-gradient(80% 58% at 76% 3%, rgba(78,164,216,0.26) 0%, rgba(78,164,216,0) 62%)," +
+          "radial-gradient(48% 32% at 18% 64%, rgba(34,118,186,0.46) 0%, rgba(34,118,186,0) 62%)," +
+          "radial-gradient(42% 28% at 84% 90%, rgba(18,172,190,0.34) 0%, rgba(18,172,190,0) 60%)," +
+          "linear-gradient(178deg, #04070F 0%, #061428 46%, #0A2740 82%, #0C3752 100%)",
+        blur: 0.032,
+        extra: "saturate(1.14) brightness(1.03)",
+        waves: [
+          { y: 300, amp: 26, cycles: 1.00, phase: 0.12, tintColor: "120,196,238", tint: [0.13, 0.0], fade: 0.21,
+            spec: "rgba(178,232,255,0.78)", specW: 3, bloom: "rgba(120,205,255,0.26)", bloomW: 18,
+            shadow: "rgba(1,6,16,0.55)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 420, amp: 40, cycles: 1.35, phase: 0.58, tintColor: "126,200,240", tint: [0.14, 0.0], fade: 0.20,
+            spec: "rgba(190,238,255,0.84)", specW: 3, bloom: "rgba(120,205,255,0.28)", bloomW: 18,
+            shadow: "rgba(1,6,16,0.56)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 544, amp: 46, cycles: 1.10, phase: 0.20, tintColor: "134,206,244", tint: [0.15, 0.0], fade: 0.19,
+            spec: "rgba(202,243,255,0.88)", specW: 3, bloom: "rgba(126,210,255,0.30)", bloomW: 18,
+            shadow: "rgba(1,6,16,0.58)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 672, amp: 40, cycles: 1.50, phase: 0.80, tintColor: "142,212,248", tint: [0.16, 0.0], fade: 0.18,
+            spec: "rgba(214,247,255,0.92)", specW: 3, bloom: "rgba(132,215,255,0.32)", bloomW: 18,
+            shadow: "rgba(1,6,16,0.60)", shadowW: 26, shadowBlur: "blur-m" },
+          { y: 796, amp: 32, cycles: 1.25, phase: 0.42, tintColor: "150,218,252", tint: [0.18, 0.01], fade: 0.17,
+            spec: "rgba(226,250,255,0.97)", specW: 3, bloom: "rgba(140,220,255,0.34)", bloomW: 18,
+            shadow: "rgba(1,6,16,0.62)", shadowW: 26, shadowBlur: "blur-m" }
+        ]
+      }
+    },
+
+    swell: {
+      light: {
+        rim: "rim-light",
+        ground:
+          "radial-gradient(56% 34% at 72% 9%, rgba(255,205,152,0.70) 0%, rgba(255,205,152,0) 62%)," +
+          "radial-gradient(44% 28% at 16% 72%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)," +
+          "radial-gradient(46% 30% at 86% 94%, rgba(24,110,168,0.45) 0%, rgba(24,110,168,0) 60%)," +
+          "linear-gradient(178deg, #FFF6EC 0%, #F3E2D6 16%, #C2DCEC 42%, #5AA7D4 76%, #2A7BB0 100%)",
+        blur: 0.045,
+        extra: "saturate(1.05) brightness(1.01)",
+        waves: [
+          { y: 452, amp: 78, cycles: 0.85, phase: 0.30, tilt: -0.055, tintColor: "255,255,255", tint: [0.26, 0.0], fade: 0.30,
+            spec: "rgba(255,255,255,0.94)", specW: 3.8, bloom: "rgba(255,255,255,0.42)", bloomW: 20,
+            shadow: "rgba(26,66,100,0.24)", shadowW: 32, shadowBlur: "blur-l" },
+          { y: 632, amp: 88, cycles: 1.05, phase: 0.72, tilt: -0.03, tintColor: "255,255,255", tint: [0.28, 0.0], fade: 0.26,
+            spec: "rgba(255,255,255,0.97)", specW: 3.8, bloom: "rgba(255,255,255,0.46)", bloomW: 20,
+            shadow: "rgba(26,66,100,0.28)", shadowW: 32, shadowBlur: "blur-l" },
+          { y: 812, amp: 66, cycles: 0.90, phase: 0.16, tilt: -0.02, tintColor: "255,255,255", tint: [0.30, 0.03], fade: 0.22,
+            spec: "rgba(255,255,255,1)", specW: 3.8, bloom: "rgba(255,255,255,0.5)", bloomW: 20,
+            shadow: "rgba(26,66,100,0.32)", shadowW: 32, shadowBlur: "blur-l" }
+        ]
+      },
+      dark: {
+        rim: "rim-dark",
+        ground:
+          "radial-gradient(62% 40% at 70% 9%, rgba(255,138,72,0.34) 0%, rgba(255,138,72,0) 64%)," +
+          "radial-gradient(44% 28% at 14% 70%, rgba(26,140,190,0.44) 0%, rgba(26,140,190,0) 62%)," +
+          "radial-gradient(42% 26% at 88% 94%, rgba(0,190,186,0.30) 0%, rgba(0,190,186,0) 60%)," +
+          "linear-gradient(178deg, #160C1B 0%, #24102A 16%, #0E2138 46%, #093245 76%, #06414F 100%)",
+        blur: 0.045,
+        extra: "saturate(1.16) brightness(1.035)",
+        waves: [
+          { y: 452, amp: 78, cycles: 0.85, phase: 0.30, tilt: -0.055, tintColor: "150,205,235", tint: [0.16, 0.0], fade: 0.30,
+            spec: "rgba(255,222,190,0.86)", specW: 3.8, bloom: "rgba(255,178,124,0.30)", bloomW: 24,
+            shadow: "rgba(3,6,14,0.60)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 632, amp: 88, cycles: 1.05, phase: 0.72, tilt: -0.03, tintColor: "140,206,240", tint: [0.19, 0.0], fade: 0.26,
+            spec: "rgba(216,245,255,0.92)", specW: 3.8, bloom: "rgba(120,210,255,0.32)", bloomW: 24,
+            shadow: "rgba(3,6,14,0.62)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 812, amp: 66, cycles: 0.90, phase: 0.16, tilt: -0.02, tintColor: "132,212,248", tint: [0.22, 0.02], fade: 0.22,
+            spec: "rgba(228,250,255,0.98)", specW: 3.8, bloom: "rgba(130,218,255,0.36)", bloomW: 24,
+            shadow: "rgba(3,6,14,0.64)", shadowW: 34, shadowBlur: "blur-l" }
+        ]
+      }
+    },
+
+    ribbon: {
+      light: {
+        rim: "rim-light",
+        ground:
+          "radial-gradient(82% 66% at 24% 88%, rgba(52,136,214,0.85) 0%, rgba(52,136,214,0) 66%)," +
+          "radial-gradient(58% 46% at 86% 6%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0) 56%)," +
+          "radial-gradient(54% 40% at 92% 56%, rgba(126,96,206,0.34) 0%, rgba(126,96,206,0) 62%)," +
+          "linear-gradient(160deg, #E2ECF8 0%, #A9C7EA 46%, #5F97D2 100%)",
+        blur: 0.036,
+        extra: "saturate(1.06) brightness(1.015)",
+        bands: [
+          { y: 336, amp: 62, cycles: 0.80, phase: 0.10, tilt: -0.122, half: 78, tintColor: "255,255,255", tint: 0.20,
+            specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.50)", specW: 3.4,
+            shadow: "rgba(30,66,108,0.26)", shadowW: 30, shadowBlur: "blur-m" },
+          { y: 514, amp: 54, cycles: 1.05, phase: 0.62, tilt: -0.122, half: 78, tintColor: "255,255,255", tint: 0.20,
+            specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.50)", specW: 3.4,
+            shadow: "rgba(30,66,108,0.26)", shadowW: 30, shadowBlur: "blur-m" },
+          { y: 692, amp: 60, cycles: 0.88, phase: 0.34, tilt: -0.122, half: 78, tintColor: "255,255,255", tint: 0.20,
+            specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.50)", specW: 3.4,
+            shadow: "rgba(30,66,108,0.26)", shadowW: 30, shadowBlur: "blur-m" }
+        ]
+      },
+      dark: {
+        rim: "rim-dark",
+        ground:
+          "radial-gradient(84% 68% at 24% 88%, rgba(30,112,205,0.72) 0%, rgba(30,112,205,0) 66%)," +
+          "radial-gradient(62% 50% at 86% 6%, rgba(112,76,224,0.60) 0%, rgba(112,76,224,0) 62%)," +
+          "radial-gradient(50% 38% at 58% 46%, rgba(20,150,190,0.34) 0%, rgba(20,150,190,0) 64%)," +
+          "linear-gradient(160deg, #080B16 0%, #0A1026 46%, #0C1A34 100%)",
+        blur: 0.036,
+        extra: "saturate(1.2) brightness(1.05)",
+        bands: [
+          { y: 336, amp: 62, cycles: 0.80, phase: 0.10, tilt: -0.122, half: 78, tintColor: "180,220,255", tint: 0.12,
+            specTop: "rgba(224,246,255,0.92)", specBot: "rgba(130,200,255,0.32)", specW: 3.4,
+            shadow: "rgba(0,3,10,0.62)", shadowW: 30, shadowBlur: "blur-m" },
+          { y: 514, amp: 54, cycles: 1.05, phase: 0.62, tilt: -0.122, half: 78, tintColor: "180,220,255", tint: 0.12,
+            specTop: "rgba(224,246,255,0.92)", specBot: "rgba(130,200,255,0.32)", specW: 3.4,
+            shadow: "rgba(0,3,10,0.62)", shadowW: 30, shadowBlur: "blur-m" },
+          { y: 692, amp: 60, cycles: 0.88, phase: 0.34, tilt: -0.122, half: 78, tintColor: "180,220,255", tint: 0.12,
+            specTop: "rgba(224,246,255,0.92)", specBot: "rgba(130,200,255,0.32)", specW: 3.4,
+            shadow: "rgba(0,3,10,0.62)", shadowW: 30, shadowBlur: "blur-m" }
+        ]
+      }
+    }
+  };
+
+  /* ---------- build the shared clip paths and crest lines ---------- */
+
+  const SAMPLES = 160;
+
+  for (const dirName in DIRECTIONS) {
+    for (const theme in DIRECTIONS[dirName]) {
+      const spec = DIRECTIONS[dirName][theme];
+      const key = dirName + "-" + theme;
+
+      (spec.waves || []).forEach((w, i) => {
+        const pts = crest(w, SAMPLES);
+        const clip = svgEl("clipPath", { id: "c-" + key + "-" + i, clipPathUnits: "objectBoundingBox" });
+        clip.appendChild(svgEl("path", { d: sheetPath(pts, VB) }));
+        defs.appendChild(clip);
+        defs.appendChild(svgEl("path", { id: "l-" + key + "-" + i, d: pathFrom(pts, false, 1) }));
+      });
+
+      (spec.bands || []).forEach((b, i) => {
+        const top = crest({ y: b.y - b.half, amp: b.amp, cycles: b.cycles, phase: b.phase, tilt: b.tilt }, SAMPLES);
+        const bot = crest({ y: b.y + b.half, amp: b.amp, cycles: b.cycles, phase: b.phase, tilt: b.tilt }, SAMPLES);
+        const clip = svgEl("clipPath", { id: "c-" + key + "-" + i, clipPathUnits: "objectBoundingBox" });
+        clip.appendChild(svgEl("path", { d: bandPath(top, bot, VB) }));
+        defs.appendChild(clip);
+        defs.appendChild(svgEl("path", { id: "l-" + key + "-" + i, d: pathFrom(top, false, 1) }));
+        defs.appendChild(svgEl("path", { id: "b-" + key + "-" + i, d: pathFrom(bot, false, 1) }));
+      });
+    }
+  }
+
+  /* ---------- icon assembly ---------- */
+
+  function overlay() {
+    const s = svgEl("svg", { class: "layer-svg", viewBox: "0 0 " + VB + " " + VB });
+    return s;
+  }
+
+  function stroke(href, color, width, filter, mask) {
+    const u = svgEl("use", {
+      href: "#" + href, fill: "none", stroke: color, "stroke-width": width,
+      "stroke-linecap": "round"
+    });
+    if (filter) u.setAttribute("filter", "url(#" + filter + ")");
+    if (mask) u.setAttribute("mask", "url(#" + mask + ")");
+    return u;
+  }
+
+  // The tint sits in the element box, but the glass is clipped to the wave. Anchoring the
+  // falloff at the crest's highest point keeps the ramp entirely inside the clip, so no
+  // horizontal seam shows where the gradient changes slope.
+  function sheetTint(w) {
+    const start = (w.y - w.amp) / VB * 100;
+    const span = w.fade * 100;
+    const stops = [];
+    for (let k = 0; k <= 6; k++) {
+      const t = k / 6;
+      const a = w.tint[1] + (w.tint[0] - w.tint[1]) * Math.exp(-3.0 * t);
+      stops.push("rgba(" + w.tintColor + "," + Math.round(a * 1000) / 1000 + ") " + r1(start + t * span) + "%");
+    }
+    stops.push("rgba(" + w.tintColor + "," + w.tint[1] + ") 100%");
+    return "linear-gradient(180deg," + stops.join(",") + ")";
+  }
+
+  function bandTint(b) {
+    const top = (b.y - b.half - b.amp) / VB * 100;
+    const bot = (b.y + b.half + b.amp) / VB * 100;
+    return "linear-gradient(180deg," +
+      "rgba(" + b.tintColor + "," + Math.round(b.tint * 1300) / 1000 + ") " + r1(top) + "%," +
+      "rgba(" + b.tintColor + "," + Math.round(b.tint * 550) / 1000 + ") " + r1(bot) + "%)";
+  }
+
+  function buildIcon(dirName, theme, size) {
+    const spec = DIRECTIONS[dirName][theme];
+    const key = dirName + "-" + theme;
+
+    const wrap = document.createElement("div");
+    wrap.className = "iconwrap";
+    wrap.style.setProperty("--s", size + "px");
+
+    const icon = document.createElement("div");
+    icon.className = "icon";
+    icon.setAttribute("role", "img");
+    icon.setAttribute("aria-label", "Din app icon, " + dirName + " direction, " + theme + " variant");
+
+    const ground = document.createElement("div");
+    ground.className = "ground";
+    ground.style.background = spec.ground;
+    icon.appendChild(ground);
+
+    const layers = spec.waves || spec.bands;
+    const isBand = !!spec.bands;
+
+    layers.forEach((w, i) => {
+      // 1 — contact shadow on whatever sits behind this layer. Half of each stroke is
+      //     covered by the glass, so only the part outside the shape reads.
+      const sh = overlay();
+      sh.appendChild(stroke("l-" + key + "-" + i, w.shadow, w.shadowW, w.shadowBlur || "blur-l"));
+      if (isBand) sh.appendChild(stroke("b-" + key + "-" + i, w.shadow, w.shadowW, w.shadowBlur || "blur-l"));
+      icon.appendChild(sh);
+
+      // 2 — the glass itself
+      const glass = document.createElement("div");
+      glass.className = "glass";
+      glass.style.clipPath = "url(#c-" + key + "-" + i + ")";
+      glass.style.setProperty("--bd", "blur(" + r1(size * spec.blur) + "px) " + spec.extra);
+
+      glass.style.background = isBand ? bandTint(w) : sheetTint(w);
+      icon.appendChild(glass);
+
+      // 3 — specular edges on top of the glass
+      const mask = i % 2 ? "spec-mask-b" : "spec-mask-a";
+      const sp = overlay();
+      if (isBand) {
+        sp.appendChild(stroke("b-" + key + "-" + i, w.specBot, w.specW * 0.8, "blur-s", mask));
+        sp.appendChild(stroke("l-" + key + "-" + i, w.specTop, w.specW * 4, "blur-m", mask));
+        sp.appendChild(stroke("l-" + key + "-" + i, w.specTop, w.specW, null, mask));
+      } else {
+        sp.appendChild(stroke("l-" + key + "-" + i, w.bloom, w.bloomW, "blur-m", mask));
+        sp.appendChild(stroke("l-" + key + "-" + i, w.spec, w.specW, null, mask));
+      }
+      icon.appendChild(sp);
+    });
+
+    // rim light around the icon edge
+    const rim = svgEl("svg", { class: "rim", viewBox: "0 0 " + VB + " " + VB });
+    rim.appendChild(svgEl("use", {
+      href: "#sq-path", fill: "none", stroke: "url(#" + spec.rim + ")", "stroke-width": 6
+    }));
+    icon.appendChild(rim);
+
+    wrap.appendChild(icon);
+    return wrap;
+  }
+
+  /* ---------- mount ---------- */
+
+  const HERO = 320;
+  const LADDER = [128, 64, 32, 16];
+
+  document.querySelectorAll("[data-mount]").forEach((mount) => {
+    const dirName = mount.getAttribute("data-mount");
+
+    [["light", "Light"], ["dark", "Dark"]].forEach(([theme, label]) => {
+      const plate = document.createElement("div");
+      plate.className = "plate " + theme;
+
+      const lab = document.createElement("div");
+      lab.className = "plate-label";
+      lab.textContent = label;
+      plate.appendChild(lab);
+
+      const slot = document.createElement("div");
+      slot.className = "hero-slot";
+      slot.appendChild(buildIcon(dirName, theme, HERO));
+      plate.appendChild(slot);
+
+      const ladder = document.createElement("div");
+      ladder.className = "ladder";
+      LADDER.forEach((size) => {
+        const rung = document.createElement("div");
+        rung.className = "rung";
+        rung.appendChild(buildIcon(dirName, theme, size));
+        const cap = document.createElement("span");
+        cap.textContent = size;
+        rung.appendChild(cap);
+        ladder.appendChild(rung);
+      });
+      plate.appendChild(ladder);
+
+      mount.appendChild(plate);
+    });
+  });
+})();
+</script>
