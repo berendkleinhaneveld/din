@@ -36,7 +36,7 @@ scripts/generate_assets.sh     # converts PNG → Din/Assets/Din.icns via sips +
 - `Din/Models/Track.swift` — Simple value type with metadata fields
 - `Din/Utilities/MetadataLoader.swift` — Async AVAsset metadata extraction; also handles directory recursion for audio file discovery
 - `Din/Utilities/DropLoader.swift` — Shared drag-and-drop URL collection (order-preserving, thread-safe)
-- `Din/Views/` — `ContentView` (root layout + status bar), `ControlsView` (transport + volume + progress), `PlaylistView` (list with drag/drop/reorder/context menus), `ProgressBar` (seekable progress with drag gesture)
+- `Din/Views/` — `ContentView` (root layout + status bar), `ControlsView` (transport + volume + progress), `PlaylistView` (list with drag/drop/reorder/context menus), `WaveformView` (seekable waveform with drag/hover + bar transitions)
 
 **Drag & drop:** Supported in both `ControlsView` (replaces playlist) and `PlaylistView` (adds to playlist, supports positional insert via `onInsert`). Both go through `DropLoader`, which resolves providers concurrently but keeps drop order and never mutates shared state off the main queue.
 

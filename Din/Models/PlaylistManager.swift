@@ -18,9 +18,6 @@ final class PlaylistManager: ObservableObject {
     /// Waveform peak data for the current track. Empty array if not yet available.
     @Published var waveformPeaks: [Float] = []
 
-    /// Whether waveform data has been generated for the current track.
-    @Published var isWaveformReady = false
-
     /// Live playback time — NOT @Published so it doesn't trigger view re-renders.
     private(set) var currentTime: TimeInterval = 0
 
@@ -554,7 +551,6 @@ final class PlaylistManager: ObservableObject {
     private func generateWaveform(for url: URL) {
         waveformTask?.cancel()
         waveformPeaks = []
-        isWaveformReady = false
 
         waveformTask = Task {
             do {
@@ -563,22 +559,10 @@ final class PlaylistManager: ObservableObject {
                 }
                 guard !Task.isCancelled else { return }
                 self.waveformPeaks = peaks
-                self.isWaveformReady = true
-
-                // TODO: Re-enable after testing streaming generation
-                // self.prefetchNextTrackWaveform()
             } catch {
                 guard !Task.isCancelled else { return }
                 self.waveformPeaks = []
-                self.isWaveformReady = false
             }
-        }
-    }
-
-    private func prefetchNextTrackWaveform() {
-        guard let nextURL = nextTrackURL else { return }
-        Task {
-            await WaveformGenerator.shared.prefetch(url: nextURL)
         }
     }
 

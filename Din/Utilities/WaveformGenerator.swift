@@ -37,51 +37,21 @@ actor WaveformGenerator {
         return caches.appendingPathComponent("din-waveforms", isDirectory: true)
     }
 
-    /// Currently running generation tasks, keyed by file URL. Used for cancellation.
-    private var inFlightTasks: [URL: Task<[Float], Error>] = [:]
-
     // MARK: - Public API
 
     /// Generate or load cached waveform peaks for the given audio file.
-    /// Returns an array of `binCount` floats in 0.0–1.0.
-    func peaks(for url: URL) async throws -> [Float] {
-        cancelAll(except: url)
-
-        if let cached = loadCache(for: url) {
-            return cached
-        }
-
-        if let existing = inFlightTasks[url] {
-            return try await existing.value
-        }
-
-        let task = Task<[Float], Error> {
-            let peaks = try await decodeAndExtract(url: url)
-            saveCache(peaks, for: url)
-            return peaks
-        }
-
-        inFlightTasks[url] = task
-
-        do {
-            let result = try await task.value
-            inFlightTasks[url] = nil
-            return result
-        } catch {
-            inFlightTasks[url] = nil
-            throw error
-        }
-    }
-
-    /// Generate waveform peaks with streaming progress updates.
-    /// Calls `onProgress` on the main actor as each chunk is decoded.
-    /// If cached, calls `onProgress` once with the full result.
+    ///
+    /// Returns an array of `binCount` floats in 0.0–1.0, calling `onProgress` on
+    /// the main actor as each chunk is decoded — or once with the full result when
+    /// the peaks come from the cache.
+    ///
+    /// Cancellation is the caller's: cancelling the enclosing task stops the decode
+    /// (see `decode`). `PlaylistManager` holds the task for the current track and
+    /// cancels it when the track changes.
     func peaksStreaming(
         for url: URL,
         onProgress: @escaping @MainActor @Sendable ([Float]) -> Void
     ) async throws -> [Float] {
-        cancelAll(except: url)
-
         if let cached = loadCache(for: url) {
             await onProgress(cached)
             return cached
@@ -92,35 +62,7 @@ actor WaveformGenerator {
         return peaks
     }
 
-    /// Pre-generate and cache waveform for a URL without returning the result.
-    /// Does nothing if already cached or in-flight.
-    func prefetch(url: URL) async {
-        if loadCache(for: url) != nil { return }
-        if inFlightTasks[url] != nil { return }
-
-        let task = Task<[Float], Error> {
-            let peaks = try await decodeAndExtract(url: url)
-            saveCache(peaks, for: url)
-            return peaks
-        }
-        inFlightTasks[url] = task
-        _ = try? await task.value
-        inFlightTasks[url] = nil
-    }
-
-    /// Cancel all in-flight generation tasks except for the given URL.
-    func cancelAll(except keepURL: URL? = nil) {
-        for (url, task) in inFlightTasks where url != keepURL {
-            task.cancel()
-            inFlightTasks[url] = nil
-        }
-    }
-
     // MARK: - Decode & Extract
-
-    private func decodeAndExtract(url: URL) async throws -> [Float] {
-        try await decode(url: url, onProgress: { _ in })
-    }
 
     /// Decode `url` on a background queue, reporting partial results as they land.
     ///
