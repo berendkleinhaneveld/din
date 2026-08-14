@@ -141,18 +141,15 @@ final class PlaylistManager: ObservableObject {
 
     func next() {
         guard !tracks.isEmpty else { return }
-        if let current = currentIndex {
-            let nextIndex = current + 1
-            if nextIndex < tracks.count {
-                playTrack(at: nextIndex)
-            } else if repeatEnabled {
-                playTrack(at: 0)
-            } else {
-                stop()
-                currentIndex = 0
-            }
-        } else {
+        guard let current = currentIndex else {
             playTrack(at: 0)
+            return
+        }
+        if let next = PlaylistNavigator.indexAfter(current, count: tracks.count, repeats: repeatEnabled) {
+            playTrack(at: next)
+        } else {
+            stop()
+            currentIndex = 0
         }
     }
 
@@ -162,17 +159,12 @@ final class PlaylistManager: ObservableObject {
             playTrack(at: idx)
             return
         }
-        if let current = currentIndex {
-            let prevIndex = current - 1
-            if prevIndex >= 0 {
-                playTrack(at: prevIndex)
-            } else if repeatEnabled {
-                playTrack(at: tracks.count - 1)
-            } else {
-                playTrack(at: 0)
-            }
-        } else {
+        guard let current = currentIndex else {
             playTrack(at: 0)
+            return
+        }
+        if let previous = PlaylistNavigator.indexBefore(current, count: tracks.count, repeats: repeatEnabled) {
+            playTrack(at: previous)
         }
     }
 
@@ -272,8 +264,9 @@ final class PlaylistManager: ObservableObject {
 
         if removingCurrent {
             stop()
-            if !tracks.isEmpty {
-                let newIndex = min(oldIndex, tracks.count - 1)
+            if let newIndex = PlaylistNavigator.indexAfterRemoval(
+                previousIndex: oldIndex, remainingCount: tracks.count)
+            {
                 currentTrackID = tracks[newIndex].id
                 if wasPlaying { play() }
             } else {
@@ -499,12 +492,10 @@ final class PlaylistManager: ObservableObject {
 
     /// The track that should play after the current one, honouring repeat.
     private var nextTrackURL: URL? {
-        guard let idx = currentIndex else { return nil }
-        let nextIndex = idx + 1
-        if nextIndex < tracks.count {
-            return tracks[nextIndex].url
-        }
-        return repeatEnabled ? tracks.first?.url : nil
+        guard let idx = currentIndex,
+            let next = PlaylistNavigator.indexAfter(idx, count: tracks.count, repeats: repeatEnabled)
+        else { return nil }
+        return tracks[next].url
     }
 
     /// Enqueue the next track in the AVQueuePlayer for gapless playback.
@@ -538,33 +529,26 @@ final class PlaylistManager: ObservableObject {
     /// to the next queued item (gapless), so we just update our tracking state.
     private func handleItemDidFinish(_ finishedItem: AVPlayerItem) {
         guard let idx = currentIndex else { return }
-        let nextIndex = idx + 1
 
         // The item AVQueuePlayer just advanced to is the one we queued behind
         // the finished track; it becomes the item we now wait on.
         playingItem = queuedItem
         queuedItem = nil
 
-        if nextIndex < tracks.count {
-            // AVQueuePlayer has already advanced to the next item
-            currentIndex = nextIndex
-            currentTime = 0
-            updateNowPlayingInfo()
-            generateWaveform(for: tracks[nextIndex].url)
-            // Queue the track after that for continued gapless playback
-            enqueueNextTrack()
-        } else if repeatEnabled && !tracks.isEmpty {
-            // AVQueuePlayer advanced to the repeat item we queued
-            currentIndex = 0
-            currentTime = 0
-            updateNowPlayingInfo()
-            generateWaveform(for: tracks[0].url)
-            enqueueNextTrack()
-        } else {
+        guard let next = PlaylistNavigator.indexAfter(idx, count: tracks.count, repeats: repeatEnabled) else {
             // End of playlist
             stop()
             currentIndex = 0
+            return
         }
+
+        // AVQueuePlayer has already advanced to the item we queued
+        currentIndex = next
+        currentTime = 0
+        updateNowPlayingInfo()
+        generateWaveform(for: tracks[next].url)
+        // Queue the track after that for continued gapless playback
+        enqueueNextTrack()
     }
 
     private func generateWaveform(for url: URL) {
@@ -592,10 +576,7 @@ final class PlaylistManager: ObservableObject {
     }
 
     private func prefetchNextTrackWaveform() {
-        guard let idx = currentIndex else { return }
-        let nextIndex = idx + 1
-        guard nextIndex < tracks.count else { return }
-        let nextURL = tracks[nextIndex].url
+        guard let nextURL = nextTrackURL else { return }
         Task {
             await WaveformGenerator.shared.prefetch(url: nextURL)
         }
