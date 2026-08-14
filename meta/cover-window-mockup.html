@@ -129,6 +129,30 @@ h2 {
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .seg button:focus-visible { outline: 2px solid var(--verdigris); outline-offset: -2px; }
 
+.live.is-wide { grid-template-columns: minmax(0, 580px) minmax(0, 1fr); }
+@media (max-width: 960px) { .live.is-wide { grid-template-columns: 1fr; } }
+
+.readout { margin: 0; padding: 0; }
+.readout > div {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding: 11px 0; border-bottom: 1px solid var(--rule-soft);
+}
+.readout > div:first-child { border-top: 1px solid var(--rule); }
+.readout dt {
+  font-family: var(--font-mono); font-size: 11.5px;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 0;
+}
+.readout dd {
+  margin: 0; font-family: var(--font-mono); font-size: 13px;
+  font-variant-numeric: tabular-nums; color: var(--text); text-align: right;
+}
+.readout dd.is-clamped { color: var(--accent); }
+.readout .lim { display: block; color: var(--faint); font-size: 11px; margin-top: 2px; }
+.grip-hint {
+  margin: 18px 0 0; font-size: 13px; color: var(--faint);
+  font-family: var(--font-body);
+}
+
 .notes { margin: 40px 0 0; padding: 0; list-style: none; }
 .notes > li { padding: 18px 0; border-top: 1px solid var(--rule-soft); }
 .notes > li:first-child { border-top: 1px solid var(--rule); }
@@ -187,8 +211,8 @@ footer a { color: var(--verdigris); }
   --pink:    #f74f9e;
 
   position: relative;
-  width: 336px;
-  height: 528px;
+  width: var(--w, 336px);
+  height: var(--h, 528px);
   background: var(--chrome);
   border-radius: 10px;
   overflow: hidden;
@@ -200,14 +224,31 @@ footer a { color: var(--verdigris); }
   color: var(--label);
   user-select: none;
   /* the collapse itself: NSWindow.setFrame(_:display:animate:) */
-  transition: height 340ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: width 340ms cubic-bezier(0.32, 0.72, 0, 1),
+              height 340ms cubic-bezier(0.32, 0.72, 0, 1);
 }
-.win[data-mode="cover"] { height: 336px; }
+.win.is-dragging { transition: none; }
 .win.is-static { pointer-events: none; }
+
+/* stand-in for the window's resize edge */
+.grip {
+  position: absolute; right: 0; bottom: 0;
+  width: 18px; height: 18px;
+  cursor: nwse-resize; z-index: 3;
+  opacity: 0; transition: opacity 140ms ease;
+}
+.win:hover .grip, .win.is-dragging .grip { opacity: 1; }
+.grip::before, .grip::after {
+  content: ""; position: absolute; right: 3px;
+  height: 1px; background: rgba(255,255,255,0.5);
+  transform: rotate(-45deg); transform-origin: right center;
+}
+.grip::before { bottom: 5px; width: 9px; }
+.grip::after  { bottom: 9px; width: 15px; }
 
 /* the two things the one window can be */
 .layer {
-  position: absolute; inset: 0 0 auto 0;
+  position: absolute; inset: 0;
   opacity: 0; pointer-events: none;
   transition: opacity 180ms ease;
 }
@@ -216,7 +257,7 @@ footer a { color: var(--verdigris); }
 
 /* ------------------------------- queue layer ---------------------------- */
 
-.layer-queue { display: flex; flex-direction: column; height: 528px; }
+.layer-queue { display: flex; flex-direction: column; height: 100%; }
 
 .titlebar { position: relative; height: 28px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 13px; }
 .tl { width: 12px; height: 12px; border-radius: 50%; display: block; }
@@ -315,8 +356,8 @@ footer a { color: var(--verdigris); }
 
 /* ------------------------------- cover layer ---------------------------- */
 
-.layer-cover { height: 336px; }
-.cover { position: relative; width: 336px; height: 336px; overflow: hidden; background: #1b1b1b; }
+.layer-cover { height: 100%; }
+.cover { position: relative; width: 100%; height: 100%; overflow: hidden; background: #1b1b1b; }
 .cover > img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 .cover-overlay {
@@ -496,9 +537,9 @@ footer a { color: var(--verdigris); }
             <p class="note-k">Why it's one window and not two</p>
             <p class="note-b">
               The window is already <code>.hiddenTitleBar</code>, so there's no chrome to
-              fight: collapsing 336&nbsp;&times;&nbsp;528 to 336&nbsp;&times;&nbsp;336 is a
-              single <code>setFrame(_:display:animate:)</code>, anchored at the top-left
-              corner the way macOS resizes anyway. A second window would mean a second
+              fight: collapsing to a square is a single
+              <code>setFrame(_:display:animate:)</code>, anchored at the top-left corner the
+              way macOS resizes anyway. A second window would mean a second
               lifecycle to keep alive, a second position to remember, and
               <code>shouldHandleTransportKey</code>'s <code>window === mainWindow</code>
               test would start failing — space, <code>[</code> and <code>]</code> would go
@@ -584,6 +625,77 @@ footer a { color: var(--verdigris); }
   </section>
 
   <section>
+    <h2>How big</h2>
+    <p class="section-lede">
+      At 1:1 — the only scale worth judging size at. Drag the bottom-right corner: the
+      queue window resizes freely, the cover stays square and stops at both ends.
+      Collapse it, resize the square, come back, and the queue window is the size you
+      left it.
+    </p>
+
+    <div class="live is-wide">
+      <div class="live-left">
+        <div class="stage" id="sizeStage"></div>
+        <p class="grip-hint">Drag the bottom-right corner. Click the thumbnail to collapse, <span aria-hidden="true">&times;</span> to restore.</p>
+      </div>
+
+      <div class="live-right">
+        <dl class="readout">
+          <div><dt>Window</dt><dd id="roMode">Queue</dd></div>
+          <div><dt>Current size</dt><dd id="roSize">336 &times; 528</dd></div>
+          <div><dt>Queue size, remembered</dt><dd id="roQueue">336 &times; 528</dd></div>
+          <div>
+            <dt>Cover side</dt>
+            <dd id="roCover">not yet opened<span class="lim">min 220 · max 420</span></dd>
+          </div>
+        </dl>
+
+        <ul class="notes">
+          <li>
+            <p class="note-k">Restore the size, keep the position</p>
+            <p class="note-b">
+              Stash the queue size on the way in and hand it back on the way out — but not
+              the <em>origin</em>. If you dragged the square to another corner of the screen,
+              the window should come back where you left it, not teleport home. So: keep the
+              current top-left, restore the old size. macOS frames are bottom-left origin, so
+              that means <code>origin.y -= newHeight - oldHeight</code> — the classic way to
+              get this wrong is to set the size and watch the window grow downward off the
+              bottom of the screen.
+            </p>
+          </li>
+          <li>
+            <p class="note-k">Why 220 at the bottom</p>
+            <p class="note-b">
+              The hover overlay needs about 130&nbsp;pt for the title, transport, waveform
+              and times. Below roughly 220&nbsp;pt square the overlay stops being a scrim
+              over a cover and becomes the whole window — the sleeve disappears behind its
+              own controls. That's the floor, and it's derived rather than picked.
+            </p>
+          </li>
+          <li>
+            <p class="note-k">Why 420 at the top</p>
+            <p class="note-b">
+              This is a judgement call, not a derivation. The square is a thing you park in
+              a corner and glance at; past about 420&nbsp;pt it stops being furniture and
+              starts being a lightbox, and on a laptop screen it's eating half the height.
+              Worth trying 480 before settling.
+            </p>
+          </li>
+          <li>
+            <p class="note-k">The first collapse borrows the width</p>
+            <p class="note-b">
+              With no remembered square yet, the cover opens at the queue window's own
+              width, clamped — so a default 336&nbsp;pt window gives a 336&nbsp;pt square and
+              the collapse is purely vertical. Widen the queue past 420 first and you'll see
+              the window narrow on the way in.
+            </p>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
     <h2>When there's no artwork</h2>
     <p class="section-lede">
       Plenty of files carry no embedded cover, so the square has to be worth opening
@@ -656,20 +768,31 @@ footer a { color: var(--verdigris); }
           <p class="note-b">
             It already owns <code>mainWindow</code> and hands out
             <code>showMainWindow()</code>; a <code>setCoverMode(_:)</code> beside it keeps
-            all the window poking in one place. Lock the aspect with
-            <code>window.aspectRatio = NSSize(width: 1, height: 1)</code> on the way in and
-            clear it on the way out, and hide the standard window buttons while collapsed.
+            all the window poking in one place — save the size, lock the aspect, clamp,
+            hide the standard window buttons, and reverse all four on the way out.
           </p>
         </li>
       </ul>
 
       <ul class="notes">
         <li>
-          <p class="note-k">Two frames to remember</p>
+          <p class="note-k">Two sizes to remember</p>
           <p class="note-b">
-            The queue frame so it comes back the size you left it, and the cover frame so a
-            resized square stays resized. <code>din.coverMode</code> and
-            <code>din.coverSize</code> next to <code>din.repeat</code>.
+            <code>din.queueSize</code> so the window comes back exactly as you left it, and
+            <code>din.coverSide</code> so a resized square stays resized — both alongside
+            <code>din.repeat</code>. Sizes, not frames: the position is whatever the window
+            currently has.
+          </p>
+        </li>
+        <li>
+          <p class="note-k">Clearing the aspect lock</p>
+          <p class="note-b">
+            <code>contentAspectRatio</code> and <code>contentResizeIncrements</code> are
+            mutually exclusive — setting either clears the other. So the way out of the
+            square is <code>contentResizeIncrements = NSSize(width: 1, height: 1)</code>,
+            not assigning a zero ratio. Set <code>contentMinSize</code> and
+            <code>contentMaxSize</code> on the way in, and put them back to the queue's
+            300&nbsp;&times;&nbsp;400 minimum on the way out.
           </p>
         </li>
         <li>
@@ -767,6 +890,15 @@ const SUBTITLE = "Syl Kougaï — La fille verte";
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const clock = { t: START, playing: !reduceMotion, last: 0 };
 const windows = [];
+
+/* The sizing model. The queue window is free within the app's existing
+   minimums; the cover is square and clamped at both ends. */
+const QUEUE_DEFAULT = { w: 336, h: 528 };
+const LIMITS = {
+  queue: { minW: 300, minH: 400, maxW: 560, maxH: 760 },
+  cover: { min: 220, max: 420 },
+};
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
 function fmt(s) {
   s = Math.max(0, Math.min(DURATION, s));
@@ -1007,16 +1139,56 @@ function makeWindow(opts) {
           </div>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${opts.resizable ? '<span class="grip"></span>' : ""}`;
 
   const state = {
     el,
     scale: opts.scale,
+    mode: opts.mode,
+    size: { qw: QUEUE_DEFAULT.w, qh: QUEUE_DEFAULT.h, side: null },
+    clamped: null,
     hover: null,
     dragging: false,
     dragProgress: 0,
     grow: 0,
     born: performance.now() + (opts.delay || 0),
+  };
+
+  /* One window, two remembered shapes: the queue size is stashed on the way
+     into cover mode and handed back verbatim on the way out. */
+  state.applySize = () => {
+    const cover = state.mode === "cover";
+    if (cover && state.size.side == null) {
+      state.size.side = clamp(state.size.qw, LIMITS.cover.min, LIMITS.cover.max);
+    }
+    const w = cover ? state.size.side : state.size.qw;
+    const h = cover ? state.size.side : state.size.qh;
+    el.style.setProperty("--w", w + "px");
+    el.style.setProperty("--h", h + "px");
+    if (state.stage) {
+      if (opts.fit) {
+        // never let the window push the page sideways, however wide it's dragged
+        const room = state.stage.parentElement.clientWidth;
+        const floor = opts.shrink ? 0.35 : 1;
+        state.scale = Math.max(floor, Math.min(opts.scale, room / w));
+        state.stage.style.setProperty("--s", state.scale);
+      }
+      state.stage.style.width = (w * state.scale) + "px";
+      state.stage.style.height = (h * state.scale) + "px";
+    }
+    if (state.onSize) state.onSize(state);
+  };
+
+  state.setMode = mode => {
+    state.mode = mode;
+    el.dataset.mode = mode;
+    for (const l of el.querySelectorAll(".layer")) {
+      l.classList.toggle("is-on", l.classList.contains("layer-" + mode));
+    }
+    state.clamped = null;
+    state.applySize();
+    requestAnimationFrame(() => state.drawPlaceholders());
   };
 
   const canvases = [...el.querySelectorAll(".wave canvas")];
@@ -1052,8 +1224,45 @@ function makeWindow(opts) {
     for (const b of playBtns) {
       b.addEventListener("click", () => { clock.playing = !clock.playing; render(); });
     }
-    el.querySelector(".thumb").addEventListener("click", () => setMode("cover"));
-    el.querySelector(".close-btn").addEventListener("click", () => setMode("queue"));
+    el.querySelector(".thumb").addEventListener("click", () => state.setMode("cover"));
+    el.querySelector(".close-btn").addEventListener("click", () => state.setMode("queue"));
+
+    const grip = el.querySelector(".grip");
+    if (grip) {
+      let drag = null;
+      grip.addEventListener("pointerdown", ev => {
+        grip.setPointerCapture(ev.pointerId);
+        el.classList.add("is-dragging");
+        const cover = state.mode === "cover";
+        drag = {
+          x: ev.clientX, y: ev.clientY,
+          w: cover ? state.size.side : state.size.qw,
+          h: cover ? state.size.side : state.size.qh,
+        };
+        ev.preventDefault();
+      });
+      grip.addEventListener("pointermove", ev => {
+        if (!drag) return;
+        const dx = (ev.clientX - drag.x) / state.scale;
+        const dy = (ev.clientY - drag.y) / state.scale;
+        if (state.mode === "cover") {
+          // aspectRatio 1:1 — the window follows whichever edge you pulled hardest
+          const want = drag.w + Math.max(dx, dy);
+          const side = Math.round(clamp(want, LIMITS.cover.min, LIMITS.cover.max));
+          state.clamped = side === LIMITS.cover.min && want < side ? "min"
+                        : side === LIMITS.cover.max && want > side ? "max" : null;
+          state.size.side = side;
+        } else {
+          state.size.qw = Math.round(clamp(drag.w + dx, LIMITS.queue.minW, LIMITS.queue.maxW));
+          state.size.qh = Math.round(clamp(drag.h + dy, LIMITS.queue.minH, LIMITS.queue.maxH));
+          state.clamped = null;
+        }
+        state.applySize();
+      });
+      const end = () => { drag = null; el.classList.remove("is-dragging"); };
+      grip.addEventListener("pointerup", end);
+      grip.addEventListener("pointercancel", end);
+    }
 
     const seekFrom = (target, ev) => {
       const r = target.getBoundingClientRect();
@@ -1091,24 +1300,14 @@ function makeWindow(opts) {
 
 /* --------------------------------- staging -------------------------------- */
 
-function stageHeight(el) { return el.dataset.mode === "cover" ? 336 : 528; }
-
 function mount(stageId, opts) {
   const stage = document.getElementById(stageId);
   const w = makeWindow(opts);
   stage.appendChild(w.el);
   stage.style.setProperty("--s", opts.scale);
   w.stage = stage;
-  w.resize = () => {
-    if (opts.fit) {
-      const room = stage.parentElement.clientWidth;
-      w.scale = Math.max(1, Math.min(opts.scale, room / w.el.offsetWidth));
-      stage.style.setProperty("--s", w.scale);
-    }
-    stage.style.width = (w.el.offsetWidth * w.scale) + "px";
-    stage.style.height = (stageHeight(w.el) * w.scale) + "px";
-    w.drawPlaceholders();
-  };
+  w.resize = () => { w.applySize(); w.drawPlaceholders(); };
+  w.applySize();
   return w;
 }
 
@@ -1122,8 +1321,37 @@ mount("phWaves", { mode: "cover", art: "none", placeholder: "waves", scale: 1, d
 mount("phPeaks", { mode: "cover", art: "none", placeholder: "peaks", scale: 1, delay: 240 });
 mount("phBare",  { mode: "cover", art: "none", placeholder: "bare",  scale: 1, delay: 360 });
 
+// 1:1, resizable — the only honest scale for judging how big is too big
+const sizer = mount("sizeStage", {
+  mode: "queue", placeholder: "waves", scale: 1, fit: true, shrink: true,
+  interactive: true, resizable: true, delay: 200,
+});
+
 function render() { for (const w of windows) w.render(); }
 function relayout() { for (const w of windows) w.resize(); render(); }
+
+/* ------------------------------ the size readout --------------------------- */
+
+const ro = {
+  mode:  document.getElementById("roMode"),
+  size:  document.getElementById("roSize"),
+  queue: document.getElementById("roQueue"),
+  cover: document.getElementById("roCover"),
+};
+const dim = (w, h) => w + " × " + h;
+
+sizer.onSize = s => {
+  const cover = s.mode === "cover";
+  ro.mode.textContent = cover ? "Cover" : "Queue";
+  ro.size.textContent = cover ? dim(s.size.side, s.size.side) : dim(s.size.qw, s.size.qh);
+  ro.size.classList.toggle("is-clamped", cover && s.clamped != null);
+  ro.queue.textContent = dim(s.size.qw, s.size.qh);
+  ro.cover.innerHTML = (s.size.side == null ? "not yet opened" : s.size.side + " square")
+    + '<span class="lim">min ' + LIMITS.cover.min + " · max " + LIMITS.cover.max
+    + (s.clamped ? " · at " + s.clamped : "") + "</span>";
+  ro.cover.classList.toggle("is-clamped", s.clamped != null);
+};
+sizer.onSize(sizer);
 
 /* ------------------------------ page controls ----------------------------- */
 
@@ -1134,19 +1362,15 @@ const segs = {
   pin:   document.getElementById("segPin"),
 };
 
-function setMode(mode) { setOption("mode", mode); }
-
 function setOption(key, value) {
-  live.el.dataset[key] = value;
   if (key === "mode") {
-    for (const l of live.el.querySelectorAll(".layer")) {
-      l.classList.toggle("is-on", l.classList.contains("layer-" + value));
-    }
-    live.stage.style.height = (stageHeight(live.el) * live.scale) + "px";
+    live.setMode(value);
+  } else {
+    live.el.dataset[key] = value;
+    // the placeholder canvases have no width until they're shown
+    requestAnimationFrame(() => live.drawPlaceholders());
   }
   syncSegs();
-  // the placeholder canvases have no width until they're shown
-  requestAnimationFrame(() => live.drawPlaceholders());
 }
 
 function syncSegs() {
