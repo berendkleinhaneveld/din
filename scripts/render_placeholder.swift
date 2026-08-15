@@ -19,11 +19,15 @@ struct RenderPlaceholder {
         write(ContactSheet(dark: false), scale: 2, opaque: true, to: directory, named: "sheet-light")
         write(ContactSheet(dark: true), scale: 2, opaque: true, to: directory, named: "sheet-dark")
 
+        // Both point sizes at the same pixel size, so the hairline floor — which binds hard at
+        // 104 and barely at 256 — cannot be mistaken for a difference in the drawing itself.
         for (name, scheme) in [("tile-light", ColorScheme.light), ("tile-dark", ColorScheme.dark)] {
-            let tile = ArtworkPlaceholder()
-                .frame(width: 256, height: 256)
-                .environment(\.colorScheme, scheme)
-            write(tile, scale: 2, opaque: false, to: directory, named: name)
+            for points in [CGFloat(256), CGFloat(104)] {
+                let tile = ArtworkPlaceholder()
+                    .frame(width: points, height: points)
+                    .environment(\.colorScheme, scheme)
+                write(tile, scale: 512 / points, opaque: false, to: directory, named: "\(name)-\(Int(points))")
+            }
         }
 
         print("rendered to \(directory.path)")
