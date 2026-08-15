@@ -366,6 +366,8 @@
   .icon .layer-svg,
   .icon .rim { pointer-events: none; }
 
+  .icon .tex { mix-blend-mode: overlay; }
+
   .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
   @media (max-width: 900px) {
@@ -380,19 +382,19 @@
 <div class="wrap">
   <header>
     <div class="eyebrow">Din · app icon</div>
-    <h1>Three glass directions for the Din icon</h1>
+    <h1>Four glass directions for the Din icon</h1>
     <p class="lead">
       The current icon already has the right idea — overlapping waves, lit crests, deep water. What it
       doesn't have is <em>material</em>, and it is very dark: measured across the icon face it averages
       19 out of 255, with 98% of its pixels below a fifth of full brightness. These three directions
-      rebuild it in the glass language macOS 26 and iOS 26 now use — layers that blur what's behind them,
-      edges that catch light, a contact shadow where each layer meets the one behind it — and they sit
-      about four times brighter.
+      rebuild it in the glass language macOS 26 and iOS 26 now use — layers that scatter what's behind
+      them, edges that catch light, a contact shadow where each layer meets the one behind it — and they
+      sit about four times brighter. The fourth drops the frost and refracts instead.
     </p>
     <div class="facts">
       <span>Canvas <b>1024 × 1024</b></span>
       <span>Shape <b>superellipse, n = 5</b></span>
-      <span>Frost <b>live backdrop blur</b></span>
+      <span>Frost <b>scatter + grain</b></span>
       <span>Variants <b>light + dark</b></span>
       <span>Mean luminance <b>19 → 82</b></span>
     </div>
@@ -499,30 +501,78 @@
     </div>
   </section>
 
+  <section class="dir">
+    <div class="dir-head">
+      <h2>Lens</h2>
+      <div class="tagline">Clear glass that bends the background instead of covering it</div>
+    </div>
+    <div class="stage" data-mount="lens"></div>
+    <div class="notes">
+      <div>
+        <p>
+          The other three are frosted — they scatter. This one refracts. Each band carries a displacement
+          map built from the slope of a convex edge, so the ground behind it is physically bent: compressed
+          into a bright seam right at the rim, undisturbed through the middle. Three passes at slightly
+          different strengths, recombined one colour channel each, put a faint chromatic fringe on the
+          steepest part of the curve — the tell that separates real glass from a blur.
+        </p>
+        <p>
+          It only works because the ground is worth looking at. The tint is down to 0.15, so the bands are
+          almost clear; what makes them legible is the distortion at their edges and the light along them.
+          Cover the ground with a flat colour and the whole direction disappears.
+        </p>
+        <p class="verdict">
+          <b>The most current-looking, and the least icon-like.</b> Refraction is an edge effect, and edges
+          are the first thing a thumbnail loses — below 64px this collapses to three coloured stripes.
+          Where it would earn its keep is large: an About window, a splash, the App Store listing.
+        </p>
+      </div>
+      <dl class="spec">
+        <div class="spec-title">Recipe</div>
+        <dt>Glass bands</dt><dd>3</dd>
+        <dt>Surface</dt><dd>convex squircle</dd>
+        <dt>Displacement</dt><dd>8.2% of size</dd>
+        <dt>Bezel width</dt><dd>60% of half-band</dd>
+        <dt>Dispersion</dt><dd>±30–34%</dd>
+        <dt>Tint alpha</dt><dd>0.15 → 0.20</dd>
+      </dl>
+    </div>
+  </section>
+
   <section class="closing">
     <h2>Taking it to code</h2>
     <div class="closing-grid">
       <div>
-        <h3>The frost is real here</h3>
+        <h3>What makes frost read</h3>
         <p>
-          Every pane above is a live <code>backdrop-filter</code> clipped to its wave path, so what you see
-          is genuine refraction of the layers behind it — not a painted approximation.
+          Blurring a smooth gradient looks identical to not blurring it. Frost needs something to scatter:
+          coarse texture in the ground that each pane visibly softens, and fine grain inside the pane. Both
+          are <code>feTurbulence</code>, blended as <code>overlay</code>.
         </p>
       </div>
       <div>
         <h3>Porting to Pillow</h3>
         <p>
-          Same idea, four steps per layer: composite what's below, <code>GaussianBlur</code> that composite,
-          paste it back through the wave mask, then draw the specular and the cast shadow. The current
-          script's per-pixel loops go away.
+          Frosted layers are four steps: composite what's below, <code>GaussianBlur</code> it, paste it back
+          through the wave mask, then the specular and the contact shadow. Lens needs one more — a per-pixel
+          remap from the same displacement map, which is <code>numpy</code> fancy-indexing rather than a
+          Pillow call.
+        </p>
+      </div>
+      <div>
+        <h3>Why Lens is plain SVG</h3>
+        <p>
+          The usual recipe puts the displacement map in <code>backdrop-filter: url(#…)</code>, which only
+          Chromium honours. Refracting a copy of the ground inside the icon's own SVG instead costs nothing
+          in fidelity here and renders the same everywhere.
         </p>
       </div>
       <div>
         <h3>On brightness</h3>
         <p>
           The dark variants deliberately start at a mid navy rather than near-black. Measured on the icon
-          face: <b>19</b> today, <b>82</b> for Tide and Swell, <b>67</b> for Ribbon, against about
-          <b>195</b> for the light variants.
+          face: <b>19</b> today; <b>80–82</b> for Tide, Swell and Lens; <b>67</b> for Ribbon, which trades
+          it for contrast. The light variants sit near <b>190</b>.
         </p>
       </div>
       <div>
@@ -790,10 +840,54 @@
             shadow: "rgba(0,3,10,0.62)", shadowW: 30, shadowBlur: "blur-m" }
         ]
       }
+    },
+
+    // Barely tinted glass over a vivid ground: the shape is legible because it bends the
+    // background, not because it paints over it.
+    lens: {
+      light: {
+        lens: true, rim: "rim-light",
+        base: ["#F2F8FF", "#AED2F0", "#4E94CF"],
+        blobs: [
+          { cx: 16, cy: 86, r: 44, color: "12,104,206", a: 1 },
+          { cx: 84, cy: 8, r: 36, color: "255,158,74", a: 1 },
+          { cx: 58, cy: 40, r: 32, color: "108,66,212", a: 0.66 }
+        ],
+        scale: 82, blur: 1.6, spread: 0.30,
+        bands: [
+          { y: 300, amp: 42, cycles: 0.80, phase: 0.10, tilt: -0.110, half: 68, tintColor: "255,255,255",
+            tint: [0.20, 0.05], specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.42)", specW: 3.2 },
+          { y: 512, amp: 38, cycles: 1.05, phase: 0.62, tilt: -0.110, half: 68, tintColor: "255,255,255",
+            tint: [0.20, 0.05], specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.42)", specW: 3.2 },
+          { y: 724, amp: 44, cycles: 0.88, phase: 0.34, tilt: -0.110, half: 68, tintColor: "255,255,255",
+            tint: [0.20, 0.05], specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.42)", specW: 3.2 }
+        ]
+      },
+      dark: {
+        lens: true, rim: "rim-dark",
+        base: ["#141C40", "#152553", "#173A6B"],
+        blobs: [
+          { cx: 18, cy: 84, r: 48, color: "34,136,244", a: 1 },
+          { cx: 84, cy: 8, r: 40, color: "158,98,252", a: 0.95 },
+          { cx: 56, cy: 42, r: 34, color: "22,196,230", a: 0.70 }
+        ],
+        scale: 82, blur: 1.6, spread: 0.34,
+        bands: [
+          { y: 300, amp: 42, cycles: 0.80, phase: 0.10, tilt: -0.110, half: 68, tintColor: "190,226,255",
+            tint: [0.15, 0.03], specTop: "rgba(230,248,255,0.95)", specBot: "rgba(140,206,255,0.30)", specW: 3.2 },
+          { y: 512, amp: 38, cycles: 1.05, phase: 0.62, tilt: -0.110, half: 68, tintColor: "190,226,255",
+            tint: [0.15, 0.03], specTop: "rgba(230,248,255,0.95)", specBot: "rgba(140,206,255,0.30)", specW: 3.2 },
+          { y: 724, amp: 44, cycles: 0.88, phase: 0.34, tilt: -0.110, half: 68, tintColor: "190,226,255",
+            tint: [0.15, 0.03], specTop: "rgba(230,248,255,0.95)", specBot: "rgba(140,206,255,0.30)", specW: 3.2 }
+        ]
+      }
     }
   };
 
   /* ---------- build the shared clip paths and crest lines ---------- */
+
+  // Geometry is shared between the two themes, so each band's map is built once.
+  const MAP_CACHE = {};
 
   const SAMPLES = 160;
 
@@ -819,7 +913,83 @@
         defs.appendChild(svgEl("path", { id: "l-" + key + "-" + i, d: pathFrom(top, false, 1) }));
         defs.appendChild(svgEl("path", { id: "b-" + key + "-" + i, d: pathFrom(bot, false, 1) }));
       });
+
+      if (spec.lens) lensDefs(spec, key);
     }
+  }
+
+  function lensDefs(spec, key) {
+    const base = svgEl("linearGradient", { id: "lg-" + key + "-base", x1: 0, y1: 0, x2: 0, y2: 1 });
+    spec.base.forEach((c, i) => {
+      base.appendChild(svgEl("stop", { offset: i / (spec.base.length - 1), "stop-color": c }));
+    });
+    defs.appendChild(base);
+
+    spec.blobs.forEach((bl, i) => {
+      const g = svgEl("radialGradient", {
+        id: "lg-" + key + "-b" + i, cx: bl.cx / 100, cy: bl.cy / 100, r: bl.r / 100
+      });
+      const s0 = svgEl("stop", { offset: 0, "stop-color": "rgb(" + bl.color + ")" });
+      s0.setAttribute("stop-opacity", bl.a);
+      const s1 = svgEl("stop", { offset: 1, "stop-color": "rgb(" + bl.color + ")" });
+      s1.setAttribute("stop-opacity", 0);
+      g.append(s0, s1);
+      defs.appendChild(g);
+    });
+
+    defs.appendChild(svgGround("lg-" + key, spec));
+
+    spec.bands.forEach((b, i) => {
+      const mk = [b.y, b.amp, b.cycles, b.phase, b.tilt, b.half].join("_");
+      if (!MAP_CACHE[mk]) MAP_CACHE[mk] = displacementMap(b, 384);
+      defs.appendChild(refractionFilter(
+        "refract-" + key + "-" + i, MAP_CACHE[mk], spec.scale, spec.blur, spec.spread
+      ));
+
+      const t = svgEl("linearGradient", {
+        id: "lens-tint-" + key + "-" + i, gradientUnits: "userSpaceOnUse",
+        x1: 0, y1: b.y - b.half - b.amp, x2: 0, y2: b.y + b.half + b.amp
+      });
+      const t0 = svgEl("stop", { offset: 0, "stop-color": "rgb(" + b.tintColor + ")" });
+      t0.setAttribute("stop-opacity", b.tint[0]);
+      const t1 = svgEl("stop", { offset: 1, "stop-color": "rgb(" + b.tintColor + ")" });
+      t1.setAttribute("stop-opacity", b.tint[1]);
+      t.append(t0, t1);
+      defs.appendChild(t);
+    });
+  }
+
+  /* ---------- frost texture ----------
+     Blurring a smooth gradient looks exactly like not blurring it. Frost only reads when
+     there is structure for the glass to scatter: coarse texture in the ground that each pane
+     visibly softens, and fine grain in the pane itself standing in for the scattering. */
+
+  function noiseFilter(id, freq, octaves, seed, k) {
+    const f = svgEl("filter", {
+      id: id, filterUnits: "userSpaceOnUse", x: 0, y: 0, width: VB, height: VB,
+      "color-interpolation-filters": "sRGB"
+    });
+    f.appendChild(svgEl("feTurbulence", {
+      type: "fractalNoise", baseFrequency: freq, numOctaves: octaves, seed: seed, result: "n"
+    }));
+    // pull the noise toward mid grey by k, so it modulates contrast under `overlay` blending
+    const b = (1 - k) / 2;
+    f.appendChild(svgEl("feColorMatrix", {
+      in: "n", type: "matrix",
+      values: [k,0,0,0,b, k,0,0,0,b, k,0,0,0,b, 0,0,0,0,1].join(" ")
+    }));
+    return f;
+  }
+  defs.appendChild(noiseFilter("tex-coarse", "0.0085 0.014", 4, 3, 0.46));
+  defs.appendChild(noiseFilter("tex-grain", "0.30", 2, 11, 0.30));
+
+  function textureLayer(filterId, opacity, clipId) {
+    const s = svgEl("svg", { class: "layer-svg tex", viewBox: "0 0 " + VB + " " + VB });
+    const r = svgEl("rect", { x: 0, y: 0, width: VB, height: VB, filter: "url(#" + filterId + ")" });
+    if (clipId) r.setAttribute("clip-path", "url(#" + clipId + ")");
+    r.setAttribute("opacity", opacity);
+    s.appendChild(r);
+    return s;
   }
 
   /* ---------- icon assembly ---------- */
@@ -863,9 +1033,140 @@
       "rgba(" + b.tintColor + "," + Math.round(b.tint * 550) / 1000 + ") " + r1(bot) + "%)";
   }
 
+  /* ---------- refraction ----------
+     A displacement map is an image whose red and green channels say, per pixel, where to
+     sample the pixel underneath: 128 is "stay put", 0 and 255 are a full shift of `scale`
+     user units. Encoding the slope of a glass surface into it makes the background bend the
+     way it would through a real edge. Profile and encoding follow kube.io's write-up.       */
+
+  function SURFACE(x) { return Math.pow(1 - Math.pow(1 - x, 4), 0.25); }   // convex squircle
+  function slope(x) {
+    const e = 0.004, a = Math.max(0, x - e), b = Math.min(1, x + e);
+    return (SURFACE(b) - SURFACE(a)) / (b - a);
+  }
+
+  function displacementMap(band, N) {
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = N;
+    const ctx = cv.getContext("2d");
+    const img = ctx.createImageData(N, N);
+    const d = img.data;
+    const BEZEL = 0.6;                       // how far in from the edge the curve runs
+    const FLOOR = 0.05;                      // clamps the singularity at the very edge
+    const peak = slope(FLOOR);
+    for (let py = 0; py < N; py++) {
+      const y = (py + 0.5) / N * VB;
+      for (let px = 0; px < N; px++) {
+        const x = (px + 0.5) / N * VB;
+        const c0 = band.y + (band.tilt || 0) * (x - VB / 2) +
+                   band.amp * Math.sin(band.cycles * 2 * Math.PI * (x / VB) + band.phase * 2 * Math.PI);
+        const top = c0 - band.half, bot = c0 + band.half;
+        let g = 128;
+        if (y > top && y < bot) {
+          const dTop = (y - top) / (band.half * BEZEL);
+          const dBot = (bot - y) / (band.half * BEZEL);
+          const near = Math.min(dTop, dBot);
+          if (near < 1) {
+            const m = slope(Math.max(FLOOR, near)) / peak;
+            // sample outward, so the edge compresses what is behind it
+            g = 128 + (dTop < dBot ? -1 : 1) * Math.min(1, m) * 127;
+          }
+        }
+        const o = (py * N + px) * 4;
+        d[o] = 128; d[o + 1] = g; d[o + 2] = 128; d[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return cv.toDataURL();
+  }
+
+  function refractionFilter(id, mapUrl, scale, blur, spread) {
+    const f = svgEl("filter", {
+      id: id, filterUnits: "userSpaceOnUse", x: 0, y: 0, width: VB, height: VB,
+      "color-interpolation-filters": "sRGB"
+    });
+    f.appendChild(svgEl("feImage", {
+      href: mapUrl, x: 0, y: 0, width: VB, height: VB,
+      preserveAspectRatio: "none", result: "map"
+    }));
+    f.appendChild(svgEl("feGaussianBlur", { in: "SourceGraphic", stdDeviation: blur, result: "src" }));
+    // three passes at slightly different strengths, recombined one channel each — the
+    // wavelength-dependent bit of refraction, which is what fringes a real glass edge
+    const chans = [["R", 1 - spread, "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0"],
+                   ["G", 1,          "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0"],
+                   ["B", 1 + spread, "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0"]];
+    chans.forEach(([name, k, matrix]) => {
+      f.appendChild(svgEl("feDisplacementMap", {
+        in: "src", in2: "map", scale: r1(scale * k),
+        xChannelSelector: "R", yChannelSelector: "G", result: "d" + name
+      }));
+      f.appendChild(svgEl("feColorMatrix", { in: "d" + name, type: "matrix", values: matrix, result: "c" + name }));
+    });
+    f.appendChild(svgEl("feComposite", { in: "cR", in2: "cG", operator: "arithmetic", k2: 1, k3: 1, result: "rg" }));
+    f.appendChild(svgEl("feComposite", { in: "rg", in2: "cB", operator: "arithmetic", k2: 1, k3: 1 }));
+    return f;
+  }
+
+  function svgGround(id, spec) {
+    const g = svgEl("g", { id: id });
+    g.appendChild(svgEl("rect", { x: 0, y: 0, width: VB, height: VB, fill: "url(#" + id + "-base)" }));
+    spec.blobs.forEach((_, i) => {
+      g.appendChild(svgEl("rect", { x: 0, y: 0, width: VB, height: VB, fill: "url(#" + id + "-b" + i + ")" }));
+    });
+    const tex = svgEl("rect", {
+      x: 0, y: 0, width: VB, height: VB, filter: "url(#tex-coarse)", opacity: 0.26
+    });
+    tex.setAttribute("style", "mix-blend-mode:overlay");
+    g.appendChild(tex);
+    return g;
+  }
+
+  function buildLensIcon(spec, key, size) {
+    const wrap = document.createElement("div");
+    wrap.className = "iconwrap";
+    wrap.style.setProperty("--s", size + "px");
+
+    const icon = document.createElement("div");
+    icon.className = "icon";
+    icon.setAttribute("role", "img");
+    icon.setAttribute("aria-label", "Din app icon, lens direction, " + key.split("-")[1] + " variant");
+
+    const svg = svgEl("svg", { class: "layer-svg", viewBox: "0 0 " + VB + " " + VB });
+    svg.appendChild(svgEl("use", { href: "#lg-" + key }));
+
+    spec.bands.forEach((b, i) => {
+      const clipped = svgEl("g", { "clip-path": "url(#c-" + key + "-" + i + ")" });
+      const refracted = svgEl("g", { filter: "url(#refract-" + key + "-" + i + ")" });
+      refracted.appendChild(svgEl("use", { href: "#lg-" + key }));
+      clipped.appendChild(refracted);
+      clipped.appendChild(svgEl("rect", {
+        x: 0, y: 0, width: VB, height: VB, fill: "url(#lens-tint-" + key + "-" + i + ")"
+      }));
+      const grain = svgEl("rect", {
+        x: 0, y: 0, width: VB, height: VB, filter: "url(#tex-grain)", opacity: 0.26
+      });
+      grain.setAttribute("style", "mix-blend-mode:overlay");
+      clipped.appendChild(grain);
+      svg.appendChild(clipped);
+
+      const mask = i % 2 ? "spec-mask-b" : "spec-mask-a";
+      svg.appendChild(stroke("b-" + key + "-" + i, b.specBot, b.specW * 0.9, "blur-s", mask));
+      svg.appendChild(stroke("l-" + key + "-" + i, b.specTop, b.specW * 5, "blur-m", mask));
+      svg.appendChild(stroke("l-" + key + "-" + i, b.specTop, b.specW, null, mask));
+    });
+
+    svg.appendChild(svgEl("use", {
+      href: "#sq-path", fill: "none", stroke: "url(#" + spec.rim + ")", "stroke-width": 6
+    }));
+    icon.appendChild(svg);
+    wrap.appendChild(icon);
+    return wrap;
+  }
+
   function buildIcon(dirName, theme, size) {
     const spec = DIRECTIONS[dirName][theme];
     const key = dirName + "-" + theme;
+    if (spec.lens) return buildLensIcon(spec, key, size);
 
     const wrap = document.createElement("div");
     wrap.className = "iconwrap";
@@ -880,6 +1181,7 @@
     ground.className = "ground";
     ground.style.background = spec.ground;
     icon.appendChild(ground);
+    icon.appendChild(textureLayer("tex-coarse", spec.texture || 0.38));
 
     const layers = spec.waves || spec.bands;
     const isBand = !!spec.bands;
@@ -901,7 +1203,10 @@
       glass.style.background = isBand ? bandTint(w) : sheetTint(w);
       icon.appendChild(glass);
 
-      // 3 — specular edges on top of the glass
+      // 3 — scattering grain, confined to this pane
+      icon.appendChild(textureLayer("tex-grain", spec.grain || 0.34, "c-" + key + "-" + i));
+
+      // 4 — specular edges on top of the glass
       const mask = i % 2 ? "spec-mask-b" : "spec-mask-a";
       const sp = overlay();
       if (isBand) {
