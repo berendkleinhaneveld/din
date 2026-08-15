@@ -554,6 +554,42 @@
 
   <section class="dir">
     <div class="dir-head">
+      <h2>Fetch</h2>
+      <span class="tag">Variation · Swell × Ribbon</span>
+      <div class="tagline">Ribbon's crest line, filled as a sheet</div>
+    </div>
+    <div class="stage" data-mount="fetch"></div>
+    <div class="notes">
+      <div>
+        <p>
+          Ribbon's wave with the band thrown away — only the top line survives, filled downward the way
+          Swell's sheets are, at Swell's size and on Swell's ground. Comparing the two parents' numbers, the
+          cycle counts are almost the same (0.80 / 1.05 / 0.88 against 0.85 / 1.05 / 0.90); what actually
+          separates them is the phase offsets and the rake. Ribbon tilts every wave −7°, where Swell tilts its
+          three by roughly 3°, 2° and 1°, so this reads as Swell with the whole sea lifted toward the right
+          — and the offset phases make the crests cross, which Swell's never do.
+        </p>
+        <p class="verdict">
+          <b>Holds as far down as Swell does</b> — at 16px there is still a warm sky over a rising
+          diagonal — and the one consistent rake gives it a cleaner silhouette than Swell's mixed tilts.
+          What it costs is calm: raking every crest the same way reads as motion where Swell reads as
+          horizon. Which of those Din wants is the actual question.
+        </p>
+      </div>
+      <dl class="spec">
+        <div class="spec-title">Recipe</div>
+        <dt>Glass layers</dt><dd>3</dd>
+        <dt>Tilt</dt><dd>−7.0°, uniform</dd>
+        <dt>Backdrop blur</dt><dd>4.5% of size</dd>
+        <dt>Tint alpha</dt><dd>0.16 → 0.30</dd>
+        <dt>Crest amplitude</dt><dd>6.6% → 8.8%</dd>
+        <dt>Contact shadow</dt><dd>3.4% wide, σ 1.6%</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="dir">
+    <div class="dir-head">
       <h2>Lens</h2>
       <div class="tagline">Clear glass that bends the background instead of covering it</div>
     </div>
@@ -940,6 +976,54 @@
       }
     },
 
+    // Ribbon's crest line only — no band, filled downward as a sheet — at Swell's scale.
+    // The two parents' cycle counts are nearly identical, so what actually carries across is
+    // Ribbon's phase offsets and its much stronger rake.
+    fetch: {
+      light: {
+        rim: "rim-light",
+        ground:
+          "radial-gradient(56% 34% at 72% 9%, rgba(255,205,152,0.70) 0%, rgba(255,205,152,0) 62%)," +
+          "radial-gradient(44% 28% at 16% 72%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)," +
+          "radial-gradient(46% 30% at 86% 94%, rgba(24,110,168,0.45) 0%, rgba(24,110,168,0) 60%)," +
+          "linear-gradient(178deg, #FFF6EC 0%, #F3E2D6 16%, #C2DCEC 42%, #5AA7D4 76%, #2A7BB0 100%)",
+        blur: 0.045,
+        extra: "saturate(1.05) brightness(1.01)",
+        waves: [
+          { y: 452, amp: 78, cycles: 0.80, phase: 0.10, tilt: -0.122, tintColor: "255,255,255", tint: [0.26, 0.0], fade: 0.30,
+            spec: "rgba(255,250,244,0.95)", specW: 3.8, bloom: "rgba(255,255,255,0.42)", bloomW: 20,
+            shadow: "rgba(26,66,100,0.24)", shadowW: 32, shadowBlur: "blur-l" },
+          { y: 632, amp: 88, cycles: 1.05, phase: 0.62, tilt: -0.122, tintColor: "255,255,255", tint: [0.28, 0.0], fade: 0.26,
+            spec: "rgba(255,255,255,0.97)", specW: 3.8, bloom: "rgba(255,255,255,0.46)", bloomW: 20,
+            shadow: "rgba(26,66,100,0.28)", shadowW: 32, shadowBlur: "blur-l" },
+          { y: 812, amp: 66, cycles: 0.88, phase: 0.34, tilt: -0.122, tintColor: "255,255,255", tint: [0.30, 0.03], fade: 0.22,
+            spec: "rgba(255,255,255,1)", specW: 3.8, bloom: "rgba(255,255,255,0.5)", bloomW: 20,
+            shadow: "rgba(26,66,100,0.32)", shadowW: 32, shadowBlur: "blur-l" }
+        ]
+      },
+      dark: {
+        rim: "rim-dark",
+        ground:
+          "radial-gradient(64% 44% at 70% 8%, rgba(255,168,104,0.58) 0%, rgba(255,168,104,0) 64%)," +
+          "radial-gradient(46% 30% at 14% 68%, rgba(44,166,218,0.55) 0%, rgba(44,166,218,0) 62%)," +
+          "radial-gradient(44% 28% at 88% 94%, rgba(10,214,204,0.42) 0%, rgba(10,214,204,0) 60%)," +
+          "linear-gradient(178deg, #34204A 0%, #3C2454 14%, #1C4067 44%, #10607E 76%, #0C7C8C 100%)",
+        blur: 0.045,
+        extra: "saturate(1.16) brightness(1.035)",
+        waves: [
+          { y: 452, amp: 78, cycles: 0.80, phase: 0.10, tilt: -0.122, tintColor: "150,205,235", tint: [0.16, 0.0], fade: 0.30,
+            spec: "rgba(255,222,190,0.88)", specW: 3.8, bloom: "rgba(255,178,124,0.30)", bloomW: 24,
+            shadow: "rgba(3,6,14,0.60)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 632, amp: 88, cycles: 1.05, phase: 0.62, tilt: -0.122, tintColor: "140,206,240", tint: [0.19, 0.0], fade: 0.26,
+            spec: "rgba(216,245,255,0.92)", specW: 3.8, bloom: "rgba(120,210,255,0.32)", bloomW: 24,
+            shadow: "rgba(3,6,14,0.62)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 812, amp: 66, cycles: 0.88, phase: 0.34, tilt: -0.122, tintColor: "132,212,248", tint: [0.22, 0.02], fade: 0.22,
+            spec: "rgba(228,250,255,0.98)", specW: 3.8, bloom: "rgba(130,218,255,0.36)", bloomW: 24,
+            shadow: "rgba(3,6,14,0.64)", shadowW: 34, shadowBlur: "blur-l" }
+        ]
+      }
+    },
+
     // Barely tinted glass over a vivid ground: the shape is legible because it bends the
     // background, not because it paints over it.
     lens: {
@@ -1111,7 +1195,10 @@
   // falloff at the crest's highest point keeps the ramp entirely inside the clip, so no
   // horizontal seam shows where the gradient changes slope.
   function sheetTint(w) {
-    const start = (w.y - w.amp) / VB * 100;
+    // a tilted crest reaches higher than its amplitude alone, and the ramp has to start above
+    // the highest point it reaches or the knee in the gradient shows as a horizontal seam
+    const reach = w.amp + Math.abs(w.tilt || 0) * VB / 2;
+    const start = (w.y - reach) / VB * 100;
     const span = w.fade * 100;
     const stops = [];
     for (let k = 0; k <= 6; k++) {
