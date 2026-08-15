@@ -134,6 +134,10 @@ struct Pane {
 }
 
 struct IconPalette {
+    /// Sampled every tenth of the way down rather than at the five design stops. SwiftUI and CSS
+    /// interpolate gradients in different colour spaces, which showed up as the icon rendering
+    /// redder and less blue than the reference, worst where the ramp was longest. Denser stops
+    /// bound that error without depending on macOS 15's `Gradient.ColorSpace`.
     let base: [Gradient.Stop]
     let blobs: [Blob]
     let panes: [Pane]
@@ -143,9 +147,15 @@ struct IconPalette {
     static let dark = IconPalette(
         base: [
             Gradient.Stop(color: Color(red: 0.204, green: 0.125, blue: 0.290), location: 0),
-            Gradient.Stop(color: Color(red: 0.235, green: 0.141, blue: 0.329), location: 0.14),
-            Gradient.Stop(color: Color(red: 0.110, green: 0.251, blue: 0.404), location: 0.44),
-            Gradient.Stop(color: Color(red: 0.063, green: 0.376, blue: 0.494), location: 0.76),
+            Gradient.Stop(color: Color(red: 0.226, green: 0.137, blue: 0.318), location: 0.1),
+            Gradient.Stop(color: Color(red: 0.210, green: 0.163, blue: 0.344), location: 0.2),
+            Gradient.Stop(color: Color(red: 0.168, green: 0.200, blue: 0.369), location: 0.3),
+            Gradient.Stop(color: Color(red: 0.127, green: 0.236, blue: 0.394), location: 0.4),
+            Gradient.Stop(color: Color(red: 0.101, green: 0.275, blue: 0.421), location: 0.5),
+            Gradient.Stop(color: Color(red: 0.086, green: 0.314, blue: 0.449), location: 0.6),
+            Gradient.Stop(color: Color(red: 0.072, green: 0.353, blue: 0.477), location: 0.7),
+            Gradient.Stop(color: Color(red: 0.060, green: 0.395, blue: 0.503), location: 0.8),
+            Gradient.Stop(color: Color(red: 0.054, green: 0.441, blue: 0.526), location: 0.9),
             Gradient.Stop(color: Color(red: 0.047, green: 0.486, blue: 0.549), location: 1),
         ],
         blobs: [
@@ -199,10 +209,16 @@ struct IconPalette {
 
     static let light = IconPalette(
         base: [
-            Gradient.Stop(color: Color(red: 1.0, green: 0.965, blue: 0.925), location: 0),
-            Gradient.Stop(color: Color(red: 0.953, green: 0.886, blue: 0.839), location: 0.16),
-            Gradient.Stop(color: Color(red: 0.761, green: 0.863, blue: 0.925), location: 0.42),
-            Gradient.Stop(color: Color(red: 0.353, green: 0.655, blue: 0.831), location: 0.76),
+            Gradient.Stop(color: Color(red: 1.000, green: 0.965, blue: 0.925), location: 0),
+            Gradient.Stop(color: Color(red: 0.971, green: 0.916, blue: 0.872), location: 0.1),
+            Gradient.Stop(color: Color(red: 0.923, green: 0.883, blue: 0.852), location: 0.2),
+            Gradient.Stop(color: Color(red: 0.849, green: 0.874, blue: 0.886), location: 0.3),
+            Gradient.Stop(color: Color(red: 0.776, green: 0.865, blue: 0.919), location: 0.4),
+            Gradient.Stop(color: Color(red: 0.665, green: 0.814, blue: 0.903), location: 0.5),
+            Gradient.Stop(color: Color(red: 0.545, green: 0.753, blue: 0.876), location: 0.6),
+            Gradient.Stop(color: Color(red: 0.425, green: 0.692, blue: 0.848), location: 0.7),
+            Gradient.Stop(color: Color(red: 0.322, green: 0.626, blue: 0.808), location: 0.8),
+            Gradient.Stop(color: Color(red: 0.243, green: 0.554, blue: 0.749), location: 0.9),
             Gradient.Stop(color: Color(red: 0.165, green: 0.482, blue: 0.690), location: 1),
         ],
         blobs: [
