@@ -18,6 +18,8 @@ on:
     branches: ["claude/**"]
     paths:
       - "Din/Views/ArtworkPlaceholder.swift"
+      - "Din/Views/AppIconArtwork.swift"
+      - "Din/Views/WaveShape.swift"
       - "scripts/render_placeholder.swift"
       - ".github/workflows/render-placeholder.yml"
 
@@ -48,7 +50,9 @@ jobs:
           mkdir -p .build/render
           swiftc -O -parse-as-library \
             -target "$(uname -m)-apple-macos14.0" \
+            Din/Views/WaveShape.swift \
             Din/Views/ArtworkPlaceholder.swift \
+            Din/Views/AppIconArtwork.swift \
             scripts/render_placeholder.swift \
             -o .build/render/render-placeholder
 

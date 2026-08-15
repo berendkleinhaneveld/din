@@ -19,6 +19,15 @@ struct RenderPlaceholder {
         write(ContactSheet(dark: false), scale: 2, opaque: true, to: directory, named: "sheet-light")
         write(ContactSheet(dark: true), scale: 2, opaque: true, to: directory, named: "sheet-dark")
 
+        for (name, scheme) in [("icon-light", ColorScheme.light), ("icon-dark", ColorScheme.dark)] {
+            let icon = AppIconArtwork()
+                .frame(width: 512, height: 512)
+                .environment(\.colorScheme, scheme)
+            write(icon, scale: 1, opaque: false, to: directory, named: name)
+        }
+        write(IconSheet(dark: false), scale: 2, opaque: true, to: directory, named: "icon-sheet-light")
+        write(IconSheet(dark: true), scale: 2, opaque: true, to: directory, named: "icon-sheet-dark")
+
         // Both point sizes at the same pixel size, so the hairline floor — which binds hard at
         // 104 and barely at 256 — cannot be mistaken for a difference in the drawing itself.
         for (name, scheme) in [("tile-light", ColorScheme.light), ("tile-dark", ColorScheme.dark)] {
@@ -99,6 +108,30 @@ private struct ContactSheet: View {
         .padding(26)
         .frame(width: 640, alignment: .leading)
         .background(dark ? Color(red: 0.169, green: 0.176, blue: 0.192) : Color(red: 0.925, green: 0.929, blue: 0.937))
+        .environment(\.colorScheme, dark ? .dark : .light)
+    }
+}
+
+/// The coloured icon at the sizes that matter, for judging how it survives scaling.
+private struct IconSheet: View {
+    let dark: Bool
+
+    private let sizes: [CGFloat] = [256, 128, 64, 32, 16]
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 20) {
+            ForEach(sizes, id: \.self) { size in
+                VStack(spacing: 8) {
+                    AppIconArtwork().frame(width: size, height: size)
+                    Text("\(Int(size))")
+                        .font(.system(size: 9, design: .monospaced))
+                        .opacity(0.45)
+                }
+            }
+        }
+        .padding(26)
+        .frame(width: 620, alignment: .leading)
+        .background(dark ? Color(red: 0.055, green: 0.063, blue: 0.078) : Color(red: 0.925, green: 0.929, blue: 0.937))
         .environment(\.colorScheme, dark ? .dark : .light)
     }
 }
