@@ -124,6 +124,7 @@ private struct WaveShape: Shape {
     }
 }
 
+#if DEBUG
 #Preview("Artwork placeholder") {
     HStack(spacing: 16) {
         ArtworkPlaceholder().frame(width: 104, height: 104)
@@ -133,3 +134,4 @@ private struct WaveShape: Shape {
     .padding(24)
     .background(.ultraThinMaterial)
 }
+#endif
