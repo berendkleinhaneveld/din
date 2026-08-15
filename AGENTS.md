@@ -24,6 +24,25 @@ scripts/generate_icon.py      # renders scripts/build/icon_1024.png (uses uv run
 scripts/generate_assets.sh     # converts PNG → Din/Assets/Din.icns via sips + iconutil
 ```
 
+Icon direction studies live in `meta/icon-mockups.html` — open it in a browser. It is a
+self-contained mockup board, not part of the build.
+
+## Seeing SwiftUI views without a Mac
+
+`ArtworkPlaceholder` is drawn rather than shipped as a bitmap, because `ContentView` backs the
+window with `.ultraThinMaterial`: the chrome's resolved colour depends on the desktop behind the
+window, so the view uses `Color.primary`, white and black at low alpha and never a fixed grey.
+
+SwiftUI only renders on Apple platforms. `.github/workflows/render-placeholder.yml` rasterises the
+view with `ImageRenderer` on a macOS runner and commits the PNGs to `meta/renders/`, so it can be
+reviewed from anywhere. It runs on push to `claude/**` branches, or manually from the Actions tab
+once the workflow is on the default branch — `workflow_dispatch` cannot be triggered from a branch
+that the default branch does not already have the file on.
+
+The same pattern works for any view: add it to `ContactSheet` in `scripts/render_placeholder.swift`.
+The renderer is compiled by `swiftc` directly against the view file, so it needs no changes to
+`Package.swift` and never ships in the app.
+
 ## Architecture
 
 **Single-singleton model:** `PlaylistManager.shared` is the central `@MainActor ObservableObject` that owns all state — playlist, playback (via `AVQueuePlayer` for gapless playback), persistence (`UserDefaults`), undo, and macOS media key integration (`MPRemoteCommandCenter`).
