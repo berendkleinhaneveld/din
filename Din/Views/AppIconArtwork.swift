@@ -16,7 +16,7 @@ struct AppIconArtwork: View {
             let palette = colorScheme == .dark ? IconPalette.dark : IconPalette.light
 
             ZStack {
-                ground(palette, side: side)
+                ground(palette)
 
                 ForEach(Array(zip(IconGeometry.crests, palette.panes).enumerated()), id: \.offset) { index, pair in
                     let (wave, pane) = pair
@@ -30,8 +30,8 @@ struct AppIconArtwork: View {
 
                     // The frost: the ground behind, blurred, showing only through this sheet. The
                     // blur reaches past the crest, which is what softens the edge convincingly.
-                    ground(palette, side: side)
-                        .blur(radius: side * palette.frost, opaque: true)
+                    ground(palette)
+                        .blur(radius: side * palette.frost)
                         .mask(sheet)
 
                     Rectangle()
@@ -66,22 +66,23 @@ struct AppIconArtwork: View {
         .accessibilityLabel("Din")
     }
 
-    private func ground(_ palette: IconPalette, side: CGFloat) -> some View {
+    private func ground(_ palette: IconPalette) -> some View {
         ZStack {
-            LinearGradient(stops: palette.base, startPoint: .top, endPoint: .bottom)
+            Rectangle()
+                .fill(LinearGradient(stops: palette.base, startPoint: .top, endPoint: .bottom))
 
+            // Every layer fills the frame and the blob is placed by the gradient's own centre.
+            // Framing and positioning children here instead left the ZStack's size ambiguous.
             ForEach(Array(palette.blobs.enumerated()), id: \.offset) { _, blob in
                 Rectangle()
                     .fill(
                         EllipticalGradient(
                             colors: [blob.color, blob.color.opacity(0)],
-                            center: .center,
+                            center: blob.center,
                             startRadiusFraction: 0,
-                            endRadiusFraction: 0.5
+                            endRadiusFraction: blob.radius
                         )
                     )
-                    .frame(width: 2 * blob.radius.width * side, height: 2 * blob.radius.height * side)
-                    .position(x: blob.center.x * side, y: blob.center.y * side)
             }
 
             // Coarse structure for the panes to scatter. Blurring a smooth gradient looks exactly
@@ -93,7 +94,6 @@ struct AppIconArtwork: View {
                     .opacity(0.38)
             }
         }
-        .frame(width: side, height: side)
     }
 
     /// Exponential falloff below the crest, anchored above the highest point the crest reaches so
@@ -111,12 +111,12 @@ struct AppIconArtwork: View {
     }
 }
 
-/// A soft colour wash over the ground. Radii are half-extents as a fraction of the icon, taken at
-/// the point the CSS original reaches full transparency.
+/// A soft colour wash over the ground. `radius` is the fraction of the frame at which the wash
+/// reaches full transparency; 0.5 would reach the edge.
 struct Blob {
     let color: Color
     let center: UnitPoint
-    let radius: CGSize
+    let radius: CGFloat
 }
 
 /// One sheet of glass: how much it tints what shows through it, and how its edge is lit.
@@ -149,17 +149,17 @@ struct IconPalette {
             Blob(
                 color: Color(red: 1.0, green: 0.659, blue: 0.408).opacity(0.58),
                 center: UnitPoint(x: 0.70, y: 0.08),
-                radius: CGSize(width: 0.410, height: 0.282)
+                radius: 0.35
             ),
             Blob(
                 color: Color(red: 0.173, green: 0.651, blue: 0.855).opacity(0.55),
                 center: UnitPoint(x: 0.14, y: 0.68),
-                radius: CGSize(width: 0.285, height: 0.186)
+                radius: 0.24
             ),
             Blob(
                 color: Color(red: 0.039, green: 0.839, blue: 0.800).opacity(0.42),
                 center: UnitPoint(x: 0.88, y: 0.94),
-                radius: CGSize(width: 0.264, height: 0.168)
+                radius: 0.22
             ),
         ],
         panes: [
@@ -206,17 +206,17 @@ struct IconPalette {
             Blob(
                 color: Color(red: 1.0, green: 0.804, blue: 0.596).opacity(0.70),
                 center: UnitPoint(x: 0.72, y: 0.09),
-                radius: CGSize(width: 0.347, height: 0.211)
+                radius: 0.28
             ),
             Blob(
                 color: .white.opacity(0.55),
                 center: UnitPoint(x: 0.16, y: 0.72),
-                radius: CGSize(width: 0.273, height: 0.174)
+                radius: 0.22
             ),
             Blob(
                 color: Color(red: 0.094, green: 0.431, blue: 0.659).opacity(0.45),
                 center: UnitPoint(x: 0.86, y: 0.94),
-                radius: CGSize(width: 0.276, height: 0.180)
+                radius: 0.23
             ),
         ],
         panes: [
