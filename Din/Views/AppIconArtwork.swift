@@ -83,6 +83,7 @@ struct AppIconArtwork: View {
                             endRadiusFraction: blob.radius
                         )
                     )
+                    .scaleEffect(x: 1, y: blob.aspect, anchor: blob.center)
             }
 
             // Coarse structure for the panes to scatter. Blurring a smooth gradient looks exactly
@@ -112,11 +113,13 @@ struct AppIconArtwork: View {
 }
 
 /// A soft colour wash over the ground. `radius` is the fraction of the frame at which the wash
-/// reaches full transparency; 0.5 would reach the edge.
+/// reaches full transparency — 0.5 would reach the edge — and `aspect` squashes it into the ellipse
+/// the CSS original used.
 struct Blob {
     let color: Color
     let center: UnitPoint
     let radius: CGFloat
+    let aspect: CGFloat
 }
 
 /// One sheet of glass: how much it tints what shows through it, and how its edge is lit.
@@ -149,17 +152,17 @@ struct IconPalette {
             Blob(
                 color: Color(red: 1.0, green: 0.659, blue: 0.408).opacity(0.58),
                 center: UnitPoint(x: 0.70, y: 0.08),
-                radius: 0.35
+                radius: 0.410, aspect: 0.688
             ),
             Blob(
                 color: Color(red: 0.173, green: 0.651, blue: 0.855).opacity(0.55),
                 center: UnitPoint(x: 0.14, y: 0.68),
-                radius: 0.24
+                radius: 0.285, aspect: 0.653
             ),
             Blob(
                 color: Color(red: 0.039, green: 0.839, blue: 0.800).opacity(0.42),
                 center: UnitPoint(x: 0.88, y: 0.94),
-                radius: 0.22
+                radius: 0.264, aspect: 0.636
             ),
         ],
         panes: [
@@ -206,17 +209,17 @@ struct IconPalette {
             Blob(
                 color: Color(red: 1.0, green: 0.804, blue: 0.596).opacity(0.70),
                 center: UnitPoint(x: 0.72, y: 0.09),
-                radius: 0.28
+                radius: 0.347, aspect: 0.608
             ),
             Blob(
                 color: .white.opacity(0.55),
                 center: UnitPoint(x: 0.16, y: 0.72),
-                radius: 0.22
+                radius: 0.273, aspect: 0.637
             ),
             Blob(
                 color: Color(red: 0.094, green: 0.431, blue: 0.659).opacity(0.45),
                 center: UnitPoint(x: 0.86, y: 0.94),
-                radius: 0.23
+                radius: 0.276, aspect: 0.652
             ),
         ],
         panes: [
@@ -254,7 +257,7 @@ struct IconPalette {
 /// scattering itself.
 enum IconNoise {
     static let coarse = make(pixels: 256, lattice: 8, octaves: 4, seed: 3, contrast: 0.46)
-    static let grain = make(pixels: 256, lattice: 128, octaves: 2, seed: 11, contrast: 0.30)
+    static let grain = make(pixels: 512, lattice: 256, octaves: 2, seed: 11, contrast: 0.30)
 
     private static func make(pixels: Int, lattice: Int, octaves: Int, seed: UInt64, contrast: Double) -> CGImage? {
         var state = seed &* 0x9E37_79B9_7F4A_7C15
