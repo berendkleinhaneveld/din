@@ -233,6 +233,91 @@
   .plate.light .rung span { color: #808A9C; }
   .plate.dark .rung span { color: #6E7889; }
 
+  /* ---------- chrome mock ---------- */
+
+  .chrome {
+    border-radius: 12px;
+    padding: 16px 14px 8px;
+    position: relative;
+    overflow: hidden;
+    font-family: var(--body);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.10), 0 10px 30px rgba(0, 0, 0, 0.10);
+  }
+
+  .chrome.light { background: #ECEDEF; color: #16181D; border: 1px solid rgba(0, 0, 0, 0.12); }
+  .chrome.dark { background: #2B2D31; color: #F0F2F5; border: 1px solid rgba(255, 255, 255, 0.10); }
+
+  .chrome-label {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    opacity: 0.35;
+  }
+
+  .mock-now { display: flex; gap: 14px; align-items: center; }
+  .mock-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .mock-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+  .mock-sub { font-size: 11px; opacity: 0.55; }
+
+  .mock-wave { height: 30px; margin-top: 6px; }
+  .mock-wave svg { display: block; width: 100%; height: 100%; }
+
+  .mock-time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.45;
+  }
+
+  .mock-rows { margin-top: 14px; }
+
+  .mock-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .chrome.light .mock-row + .mock-row { border-top: 1px solid rgba(0, 0, 0, 0.07); }
+  .chrome.dark .mock-row + .mock-row { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+
+  .mock-rt { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mock-rd { font-family: var(--mono); font-size: 10px; opacity: 0.45; font-variant-numeric: tabular-nums; }
+  .mock-thumb, .mock-art { line-height: 0; flex: none; }
+
+  .iconwrap.flat { filter: none; }
+
+  .materials { margin-top: 24px; }
+
+  .materials-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    max-width: 70ch;
+  }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  .swatch {
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--plate-edge);
+  }
+
   /* ---------- notes ---------- */
 
   .notes {
@@ -623,6 +708,96 @@
         <dt>Bezel width</dt><dd>60% of half-band</dd>
         <dt>Dispersion</dt><dd>±30–34%</dd>
         <dt>Tint alpha</dt><dd>0.15 → 0.20</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="dir">
+    <div class="dir-head">
+      <h2>No artwork</h2>
+      <span class="tag">Placeholder · from Fetch</span>
+      <div class="tagline">The wave with the colour taken out, sitting in the chrome</div>
+    </div>
+
+    <div class="stage">
+      <div class="chrome light">
+        <div class="chrome-label">Light</div>
+        <div class="mock-now">
+          <div class="mock-art" data-mono="light" data-size="104"></div>
+          <div class="mock-meta">
+            <div class="mock-title">Nocturne in E♭ major</div>
+            <div class="mock-sub">Op. 9 No. 2</div>
+            <div class="mock-wave"></div>
+            <div class="mock-time"><span>1:47</span><span>4:32</span></div>
+          </div>
+        </div>
+        <div class="mock-rows">
+          <div class="mock-row"><span class="mock-thumb" data-mono="light" data-size="26"></span><span class="mock-rt">Gymnopédie No. 1</span><span class="mock-rd">3:12</span></div>
+          <div class="mock-row"><span class="mock-thumb" data-mono="light" data-size="26"></span><span class="mock-rt">Clair de lune</span><span class="mock-rd">5:04</span></div>
+          <div class="mock-row"><span class="mock-thumb" data-mono="light" data-size="26"></span><span class="mock-rt">Träumerei</span><span class="mock-rd">2:51</span></div>
+        </div>
+      </div>
+
+      <div class="chrome dark">
+        <div class="chrome-label">Dark</div>
+        <div class="mock-now">
+          <div class="mock-art" data-mono="dark" data-size="104"></div>
+          <div class="mock-meta">
+            <div class="mock-title">Nocturne in E♭ major</div>
+            <div class="mock-sub">Op. 9 No. 2</div>
+            <div class="mock-wave"></div>
+            <div class="mock-time"><span>1:47</span><span>4:32</span></div>
+          </div>
+        </div>
+        <div class="mock-rows">
+          <div class="mock-row"><span class="mock-thumb" data-mono="dark" data-size="26"></span><span class="mock-rt">Gymnopédie No. 1</span><span class="mock-rd">3:12</span></div>
+          <div class="mock-row"><span class="mock-thumb" data-mono="dark" data-size="26"></span><span class="mock-rt">Clair de lune</span><span class="mock-rd">5:04</span></div>
+          <div class="mock-row"><span class="mock-thumb" data-mono="dark" data-size="26"></span><span class="mock-rt">Träumerei</span><span class="mock-rd">2:51</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="materials">
+      <div class="materials-label">The same placeholder over six materials — no colour is baked in, so each one takes the chrome it lands on</div>
+      <div class="swatches">
+        <div class="swatch" style="background:#ECEDEF"><span data-mono="light" data-size="72"></span></div>
+        <div class="swatch" style="background:#F1EAE0"><span data-mono="light" data-size="72"></span></div>
+        <div class="swatch" style="background:#E4E9F3"><span data-mono="light" data-size="72"></span></div>
+        <div class="swatch" style="background:#2B2D31"><span data-mono="dark" data-size="72"></span></div>
+        <div class="swatch" style="background:#332B26"><span data-mono="dark" data-size="72"></span></div>
+        <div class="swatch" style="background:#252B36"><span data-mono="dark" data-size="72"></span></div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div>
+        <p>
+          Fetch's crests with every hue removed. Nothing in this is a fixed grey — each mark is white or
+          black at low alpha, so it composites onto whatever the chrome resolves to. That matters here more
+          than it usually would: Din's window is <code>.ultraThinMaterial</code>, so its background is
+          partly the desktop behind it, and a hardcoded <code>#ECECEC</code> tile would drift out of step
+          the moment someone changes their wallpaper. The six swatches above are the same drawing.
+        </p>
+        <p>
+          The tile itself is <code>Color.primary</code> at 5–7%, which reads as a shallow well pressed into
+          the chrome — darker than its surroundings in light mode, lighter in dark. That well is what gives
+          the white crest somewhere to sit; on a bare light chrome a white highlight has almost no room to
+          register.
+        </p>
+        <p class="verdict">
+          <b>Quiet enough to sit under a track title, still legibly the icon.</b> At 26px in a list row it
+          reads as texture rather than a picture, which is the correct behaviour for a placeholder — it
+          should not compete with the artwork it stands in for.
+        </p>
+      </div>
+      <dl class="spec">
+        <div class="spec-title">Recipe</div>
+        <dt>Colour</dt><dd>none — alpha only</dd>
+        <dt>Tile</dt><dd>primary @ 5.5–7%</dd>
+        <dt>Each pane</dt><dd>primary @ 3.2–3.8%</dd>
+        <dt>Crest</dt><dd>white @ 42–85%</dd>
+        <dt>Contact shadow</dt><dd>black @ 10–30%</dd>
+        <dt>Rim</dt><dd>primary @ 13%</dd>
       </dl>
     </div>
   </section>
@@ -1437,10 +1612,92 @@
     return wrap;
   }
 
+  /* ---------- monochrome placeholder ----------
+     Din's chrome is .ultraThinMaterial, so its resolved colour depends on the desktop behind
+     the window. Nothing here may be a fixed grey: every mark is white or black at low alpha,
+     which composites correctly onto whatever the material happens to be. `ink` is the
+     equivalent of SwiftUI's Color.primary — black on light chrome, white on dark. */
+
+  const MONO = {
+    light: { ink: "0,0,0", tile: 0.055, pane: 0.032, spec: "rgba(255,255,255,0.85)",
+             shadow: "rgba(0,0,0,0.10)", rim: "rgba(0,0,0,0.13)" },
+    dark:  { ink: "255,255,255", tile: 0.070, pane: 0.038, spec: "rgba(255,255,255,0.42)",
+             shadow: "rgba(0,0,0,0.30)", rim: "rgba(255,255,255,0.13)" }
+  };
+
+  function buildMonoIcon(mode, size) {
+    const m = MONO[mode];
+    const key = "fetch-light";                    // geometry only; both themes share it
+    const waves = DIRECTIONS.fetch.light.waves;
+
+    const wrap = document.createElement("div");
+    wrap.className = "iconwrap flat";
+    wrap.style.setProperty("--s", size + "px");
+
+    const icon = document.createElement("div");
+    icon.className = "icon";
+    icon.setAttribute("role", "img");
+    icon.setAttribute("aria-label", "Din artwork placeholder");
+
+    const tile = document.createElement("div");
+    tile.className = "ground";
+    tile.style.background = "rgba(" + m.ink + "," + m.tile + ")";
+    icon.appendChild(tile);
+
+    waves.forEach((w, i) => {
+      const sh = overlay();
+      sh.appendChild(stroke("l-" + key + "-" + i, m.shadow,
+        hairline(w.shadowW, 2.5, size), "blur-l"));
+      icon.appendChild(sh);
+
+      const pane = document.createElement("div");
+      pane.className = "glass";
+      pane.style.clipPath = "url(#c-" + key + "-" + i + ")";
+      pane.style.background = "rgba(" + m.ink + "," + m.pane + ")";
+      icon.appendChild(pane);
+
+      const sp = overlay();
+      sp.appendChild(stroke("l-" + key + "-" + i, m.spec,
+        hairline(w.specW, 1, size), null, i % 2 ? "spec-mask-b" : "spec-mask-a"));
+      icon.appendChild(sp);
+    });
+
+    const rim = svgEl("svg", { class: "rim", viewBox: "0 0 " + VB + " " + VB });
+    rim.appendChild(svgEl("use", {
+      href: "#sq-path", fill: "none", stroke: m.rim, "stroke-width": hairline(6, 1, size)
+    }));
+    icon.appendChild(rim);
+
+    wrap.appendChild(icon);
+    return wrap;
+  }
+
   /* ---------- mount ---------- */
 
   const HERO = 320;
   const LADDER = [128, 64, 32, 16];
+
+  // stand-in for the app's waveform, so the placeholder is judged next to something
+  // with the visual weight the real control has
+  document.querySelectorAll(".mock-wave").forEach((slot) => {
+    const W = 240, H = 32, played = 0.42;
+    const sv = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none" });
+    let seed = 7;
+    const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+    for (let x = 0; x < W; x += 3) {
+      const env = 0.35 + 0.65 * Math.pow(Math.sin(Math.PI * (x / W)), 0.5);
+      const h = Math.max(2, env * H * (0.45 + 0.55 * rnd()));
+      sv.appendChild(svgEl("rect", {
+        x: x, y: (H - h) / 2, width: 2, height: h, fill: "currentColor",
+        opacity: x / W < played ? 0.55 : 0.22
+      }));
+    }
+    slot.appendChild(sv);
+  });
+
+  document.querySelectorAll("[data-mono]").forEach((slot) => {
+    slot.appendChild(buildMonoIcon(slot.getAttribute("data-mono"), +slot.getAttribute("data-size")));
+  });
 
   document.querySelectorAll("[data-mount]").forEach((mount) => {
     const dirName = mount.getAttribute("data-mount");
