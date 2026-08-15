@@ -144,6 +144,18 @@
     color: var(--muted);
   }
 
+  .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 3px 9px;
+    white-space: nowrap;
+  }
+
   .stage {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -389,7 +401,7 @@
       19 out of 255, with 98% of its pixels below a fifth of full brightness. These three directions
       rebuild it in the glass language macOS 26 and iOS 26 now use — layers that scatter what's behind
       them, edges that catch light, a contact shadow where each layer meets the one behind it — and they
-      sit about four times brighter. The fourth drops the frost and refracts instead.
+      sit about four times brighter. The fourth drops the frost and refracts instead, and one crossbreed sits between two of them.
     </p>
     <div class="facts">
       <span>Canvas <b>1024 × 1024</b></span>
@@ -503,6 +515,45 @@
 
   <section class="dir">
     <div class="dir-head">
+      <h2>Current</h2>
+      <span class="tag">Variation · Swell × Ribbon</span>
+      <div class="tagline">Ribbon's bands at Swell's scale</div>
+    </div>
+    <div class="stage" data-mount="current"></div>
+    <div class="notes">
+      <div>
+        <p>
+          Ribbon's form — a band of glass with a lit edge top and bottom, tilted off horizontal — scaled up
+          to Swell's proportions and dropped onto Swell's ground. Three bands instead of three sheets, each
+          about a sixth of the canvas thick, with the dusk palette showing through above, between and below
+          them. The top band takes a warm specular off the sky and the lower two stay cool, which is the
+          trick Swell already uses to tie its horizon to its water.
+        </p>
+        <p>
+          What it gains over Swell is depth: sheets stack, bands float. You can see ground on both sides of
+          every band, so each one reads as a separate piece of material rather than a fill line. What it
+          loses is Swell's silhouette — the strong light-over-dark split at the horizon is gone, replaced by
+          an even rhythm.
+        </p>
+        <p class="verdict">
+          <b>The best-looking of the five at full size, and it holds to 32px.</b> Between this and Swell it
+          is genuinely a coin toss: Swell is the bolder thumbnail, Current is the richer icon.
+        </p>
+      </div>
+      <dl class="spec">
+        <div class="spec-title">Recipe</div>
+        <dt>Glass bands</dt><dd>3</dd>
+        <dt>Band thickness</dt><dd>15.6% of size</dd>
+        <dt>Tilt</dt><dd>−5.7°</dd>
+        <dt>Backdrop blur</dt><dd>4.2% of size</dd>
+        <dt>Tint alpha</dt><dd>0.17 – 0.22</dd>
+        <dt>Crest amplitude</dt><dd>6.6% → 8.4%</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="dir">
+    <div class="dir-head">
       <h2>Lens</h2>
       <div class="tagline">Clear glass that bends the background instead of covering it</div>
     </div>
@@ -571,7 +622,7 @@
         <h3>On brightness</h3>
         <p>
           The dark variants deliberately start at a mid navy rather than near-black. Measured on the icon
-          face: <b>19</b> today; <b>80–82</b> for Tide, Swell and Lens; <b>67</b> for Ribbon, which trades
+          face: <b>19</b> today; <b>80–82</b> for Tide, Swell, Current and Lens; <b>67</b> for Ribbon, which trades
           it for contrast. The light variants sit near <b>190</b>.
         </p>
       </div>
@@ -838,6 +889,53 @@
           { y: 692, amp: 60, cycles: 0.88, phase: 0.34, tilt: -0.122, half: 78, tintColor: "180,220,255", tint: 0.12,
             specTop: "rgba(224,246,255,0.92)", specBot: "rgba(130,200,255,0.32)", specW: 3.4,
             shadow: "rgba(0,3,10,0.62)", shadowW: 30, shadowBlur: "blur-m" }
+        ]
+      }
+    },
+
+    // Ribbon's form — bands lit on both edges, tilted — at Swell's scale, over Swell's ground.
+    current: {
+      light: {
+        rim: "rim-light",
+        ground:
+          "radial-gradient(56% 34% at 72% 9%, rgba(255,205,152,0.70) 0%, rgba(255,205,152,0) 62%)," +
+          "radial-gradient(44% 28% at 16% 72%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 62%)," +
+          "radial-gradient(46% 30% at 86% 94%, rgba(24,110,168,0.45) 0%, rgba(24,110,168,0) 60%)," +
+          "linear-gradient(178deg, #FFF6EC 0%, #F3E2D6 16%, #C2DCEC 42%, #5AA7D4 76%, #2A7BB0 100%)",
+        blur: 0.042,
+        extra: "saturate(1.05) brightness(1.01)",
+        bands: [
+          { y: 380, amp: 76, cycles: 0.85, phase: 0.30, tilt: -0.10, half: 78, tintColor: "255,255,255", tint: 0.22,
+            specTop: "rgba(255,250,244,0.97)", specBot: "rgba(255,255,255,0.44)", specW: 3.6,
+            shadow: "rgba(26,66,100,0.26)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 600, amp: 84, cycles: 1.05, phase: 0.72, tilt: -0.10, half: 78, tintColor: "255,255,255", tint: 0.22,
+            specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.44)", specW: 3.6,
+            shadow: "rgba(26,66,100,0.28)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 818, amp: 66, cycles: 0.90, phase: 0.16, tilt: -0.10, half: 78, tintColor: "255,255,255", tint: 0.22,
+            specTop: "rgba(255,255,255,0.98)", specBot: "rgba(255,255,255,0.44)", specW: 3.6,
+            shadow: "rgba(26,66,100,0.30)", shadowW: 34, shadowBlur: "blur-l" }
+        ]
+      },
+      dark: {
+        rim: "rim-dark",
+        ground:
+          "radial-gradient(64% 44% at 70% 8%, rgba(255,168,104,0.58) 0%, rgba(255,168,104,0) 64%)," +
+          "radial-gradient(46% 30% at 14% 68%, rgba(44,166,218,0.55) 0%, rgba(44,166,218,0) 62%)," +
+          "radial-gradient(44% 28% at 88% 94%, rgba(10,214,204,0.42) 0%, rgba(10,214,204,0) 60%)," +
+          "linear-gradient(178deg, #34204A 0%, #3C2454 14%, #1C4067 44%, #10607E 76%, #0C7C8C 100%)",
+        blur: 0.042,
+        extra: "saturate(1.16) brightness(1.035)",
+        bands: [
+          // the top band catches the warm sky, the way Swell's first crest does
+          { y: 380, amp: 76, cycles: 0.85, phase: 0.30, tilt: -0.10, half: 78, tintColor: "150,205,235", tint: 0.17,
+            specTop: "rgba(255,222,190,0.90)", specBot: "rgba(255,186,140,0.30)", specW: 3.6,
+            shadow: "rgba(3,6,14,0.60)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 600, amp: 84, cycles: 1.05, phase: 0.72, tilt: -0.10, half: 78, tintColor: "142,206,240", tint: 0.17,
+            specTop: "rgba(216,245,255,0.94)", specBot: "rgba(126,204,255,0.32)", specW: 3.6,
+            shadow: "rgba(3,6,14,0.62)", shadowW: 34, shadowBlur: "blur-l" },
+          { y: 818, amp: 66, cycles: 0.90, phase: 0.16, tilt: -0.10, half: 78, tintColor: "134,212,248", tint: 0.17,
+            specTop: "rgba(228,250,255,0.97)", specBot: "rgba(130,210,255,0.34)", specW: 3.6,
+            shadow: "rgba(3,6,14,0.64)", shadowW: 34, shadowBlur: "blur-l" }
         ]
       }
     },
