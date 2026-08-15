@@ -83,7 +83,7 @@ struct AppIconArtwork: View {
                             endRadiusFraction: blob.radius
                         )
                     )
-                    .scaleEffect(x: 1, y: blob.aspect, anchor: blob.center)
+                    .scaleEffect(x: blob.stretch, y: 1, anchor: blob.center)
             }
 
             // Coarse structure for the panes to scatter. Blurring a smooth gradient looks exactly
@@ -112,14 +112,19 @@ struct AppIconArtwork: View {
     }
 }
 
-/// A soft colour wash over the ground. `radius` is the fraction of the frame at which the wash
-/// reaches full transparency — 0.5 would reach the edge — and `aspect` squashes it into the ellipse
-/// the CSS original used.
+/// A soft colour wash over the ground. `radius` is the vertical extent, as the fraction of the
+/// frame at which the wash reaches full transparency, and `stretch` widens it into the ellipse the
+/// CSS original used.
+///
+/// Widening rather than flattening matters: `scaleEffect` moves the layer's edges, and flattening a
+/// full-bleed rectangle about a centre near the top of the icon pulled its top edge down and left a
+/// hard line across the artwork. Stretching sideways pushes the edges out of frame instead, where
+/// they are simply clipped.
 struct Blob {
     let color: Color
     let center: UnitPoint
     let radius: CGFloat
-    let aspect: CGFloat
+    let stretch: CGFloat
 }
 
 /// One sheet of glass: how much it tints what shows through it, and how its edge is lit.
@@ -162,17 +167,17 @@ struct IconPalette {
             Blob(
                 color: Color(red: 1.0, green: 0.659, blue: 0.408).opacity(0.58),
                 center: UnitPoint(x: 0.70, y: 0.08),
-                radius: 0.410, aspect: 0.688
+                radius: 0.282, stretch: 1.454
             ),
             Blob(
                 color: Color(red: 0.173, green: 0.651, blue: 0.855).opacity(0.55),
                 center: UnitPoint(x: 0.14, y: 0.68),
-                radius: 0.285, aspect: 0.653
+                radius: 0.186, stretch: 1.532
             ),
             Blob(
                 color: Color(red: 0.039, green: 0.839, blue: 0.800).opacity(0.42),
                 center: UnitPoint(x: 0.88, y: 0.94),
-                radius: 0.264, aspect: 0.636
+                radius: 0.168, stretch: 1.571
             ),
         ],
         panes: [
@@ -225,17 +230,17 @@ struct IconPalette {
             Blob(
                 color: Color(red: 1.0, green: 0.804, blue: 0.596).opacity(0.70),
                 center: UnitPoint(x: 0.72, y: 0.09),
-                radius: 0.347, aspect: 0.608
+                radius: 0.211, stretch: 1.645
             ),
             Blob(
                 color: .white.opacity(0.55),
                 center: UnitPoint(x: 0.16, y: 0.72),
-                radius: 0.273, aspect: 0.637
+                radius: 0.174, stretch: 1.569
             ),
             Blob(
                 color: Color(red: 0.094, green: 0.431, blue: 0.659).opacity(0.45),
                 center: UnitPoint(x: 0.86, y: 0.94),
-                radius: 0.276, aspect: 0.652
+                radius: 0.180, stretch: 1.533
             ),
         ],
         panes: [
