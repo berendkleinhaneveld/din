@@ -429,9 +429,9 @@
         </p>
         <p class="verdict">
           <b>Reads best at 128px and up.</b> Five layers in a 1024 canvas leaves about 120px of vertical
-          rhythm per sheet. It survives 64px. At 32 the five crests crowd into a ripple, and at 16 there is
-          no wave left to read — just a blue field with a texture. Beautiful in the Dock, anonymous in a
-          menu bar.
+          rhythm per sheet. Holding the crests to a 1px floor keeps all five visible right down to 16px —
+          but visible and legible are different things, and five lines stacked in 16 pixels is a comb, not
+          a wave. Beautiful in the Dock, busy in a menu bar.
         </p>
       </div>
       <dl class="spec">
@@ -583,7 +583,7 @@
         <dt>Backdrop blur</dt><dd>4.5% of size</dd>
         <dt>Tint alpha</dt><dd>0.16 → 0.30</dd>
         <dt>Crest amplitude</dt><dd>6.6% → 8.8%</dd>
-        <dt>Contact shadow</dt><dd>3.4% wide, σ 1.6%</dd>
+        <dt>Crest spacing</dt><dd>20% of size</dd>
       </dl>
     </div>
   </section>
@@ -609,9 +609,10 @@
           Cover the ground with a flat colour and the whole direction disappears.
         </p>
         <p class="verdict">
-          <b>The most current-looking, and the least icon-like.</b> Refraction is an edge effect, and edges
-          are the first thing a thumbnail loses — below 64px this collapses to three coloured stripes.
-          Where it would earn its keep is large: an About window, a splash, the App Store listing.
+          <b>The most current-looking, and the least icon-like.</b> The bands themselves survive to 32px on
+          the hairline floor, but refraction is an edge effect measured in fractions of the width, and no
+          floor saves that — by 32px you have the shape without the material. Where it earns its keep is
+          large: an About window, a splash, the App Store listing.
         </p>
       </div>
       <dl class="spec">
@@ -644,6 +645,14 @@
           through the wave mask, then the specular and the contact shadow. Lens needs one more — a per-pixel
           remap from the same displacement map, which is <code>numpy</code> fancy-indexing rather than a
           Pillow call.
+        </p>
+      </div>
+      <div>
+        <h3>Small sizes are redrawn</h3>
+        <p>
+          The ladders are not downscales. Every size is drawn from the same geometry, but a line 0.3% of the
+          icon wide is 1.2px at 320 and 0.1px at 32. Below the hero size the crest, bloom, contact shadow
+          and rim are held to a <b>1px floor</b>, so the detail stays visible instead of thinning away.
         </p>
       </div>
       <div>
@@ -990,13 +999,13 @@
         blur: 0.045,
         extra: "saturate(1.05) brightness(1.01)",
         waves: [
-          { y: 452, amp: 78, cycles: 0.80, phase: 0.10, tilt: -0.122, tintColor: "255,255,255", tint: [0.26, 0.0], fade: 0.30,
+          { y: 432, amp: 78, cycles: 0.80, phase: 0.10, tilt: -0.122, tintColor: "255,255,255", tint: [0.26, 0.0], fade: 0.30,
             spec: "rgba(255,250,244,0.95)", specW: 3.8, bloom: "rgba(255,255,255,0.42)", bloomW: 20,
             shadow: "rgba(26,66,100,0.24)", shadowW: 32, shadowBlur: "blur-l" },
           { y: 632, amp: 88, cycles: 1.05, phase: 0.62, tilt: -0.122, tintColor: "255,255,255", tint: [0.28, 0.0], fade: 0.26,
             spec: "rgba(255,255,255,0.97)", specW: 3.8, bloom: "rgba(255,255,255,0.46)", bloomW: 20,
             shadow: "rgba(26,66,100,0.28)", shadowW: 32, shadowBlur: "blur-l" },
-          { y: 812, amp: 66, cycles: 0.88, phase: 0.34, tilt: -0.122, tintColor: "255,255,255", tint: [0.30, 0.03], fade: 0.22,
+          { y: 832, amp: 66, cycles: 0.88, phase: 0.34, tilt: -0.122, tintColor: "255,255,255", tint: [0.30, 0.03], fade: 0.22,
             spec: "rgba(255,255,255,1)", specW: 3.8, bloom: "rgba(255,255,255,0.5)", bloomW: 20,
             shadow: "rgba(26,66,100,0.32)", shadowW: 32, shadowBlur: "blur-l" }
         ]
@@ -1011,13 +1020,13 @@
         blur: 0.045,
         extra: "saturate(1.16) brightness(1.035)",
         waves: [
-          { y: 452, amp: 78, cycles: 0.80, phase: 0.10, tilt: -0.122, tintColor: "150,205,235", tint: [0.16, 0.0], fade: 0.30,
+          { y: 432, amp: 78, cycles: 0.80, phase: 0.10, tilt: -0.122, tintColor: "150,205,235", tint: [0.16, 0.0], fade: 0.30,
             spec: "rgba(255,222,190,0.88)", specW: 3.8, bloom: "rgba(255,178,124,0.30)", bloomW: 24,
             shadow: "rgba(3,6,14,0.60)", shadowW: 34, shadowBlur: "blur-l" },
           { y: 632, amp: 88, cycles: 1.05, phase: 0.62, tilt: -0.122, tintColor: "140,206,240", tint: [0.19, 0.0], fade: 0.26,
             spec: "rgba(216,245,255,0.92)", specW: 3.8, bloom: "rgba(120,210,255,0.32)", bloomW: 24,
             shadow: "rgba(3,6,14,0.62)", shadowW: 34, shadowBlur: "blur-l" },
-          { y: 812, amp: 66, cycles: 0.88, phase: 0.34, tilt: -0.122, tintColor: "132,212,248", tint: [0.22, 0.02], fade: 0.22,
+          { y: 832, amp: 66, cycles: 0.88, phase: 0.34, tilt: -0.122, tintColor: "132,212,248", tint: [0.22, 0.02], fade: 0.22,
             spec: "rgba(228,250,255,0.98)", specW: 3.8, bloom: "rgba(130,218,255,0.36)", bloomW: 24,
             shadow: "rgba(3,6,14,0.64)", shadowW: 34, shadowBlur: "blur-l" }
         ]
@@ -1181,6 +1190,15 @@
     return s;
   }
 
+  /* Geometry is proportional, so a specular 0.3% of the icon wide is 1.2px at 320 and 0.1px
+     at 32 — the detail disappears exactly where it is needed most. `hairline` stops any line
+     falling below a minimum thickness in CSS pixels, which leaves the large sizes untouched
+     and redraws the small ones with edges you can actually see. Real icon sets are hand-tuned
+     per size for the same reason. */
+  function hairline(userWidth, minPx, size) {
+    return Math.max(userWidth, minPx * VB / size);
+  }
+
   function stroke(href, color, width, filter, mask) {
     const u = svgEl("use", {
       href: "#" + href, fill: "none", stroke: color, "stroke-width": width,
@@ -1335,13 +1353,14 @@
       svg.appendChild(clipped);
 
       const mask = i % 2 ? "spec-mask-b" : "spec-mask-a";
-      svg.appendChild(stroke("b-" + key + "-" + i, b.specBot, b.specW * 0.9, "blur-s", mask));
-      svg.appendChild(stroke("l-" + key + "-" + i, b.specTop, b.specW * 5, "blur-m", mask));
-      svg.appendChild(stroke("l-" + key + "-" + i, b.specTop, b.specW, null, mask));
+      svg.appendChild(stroke("b-" + key + "-" + i, b.specBot, hairline(b.specW * 0.9, 0.9, size), "blur-s", mask));
+      svg.appendChild(stroke("l-" + key + "-" + i, b.specTop, hairline(b.specW * 5, 3, size), "blur-m", mask));
+      svg.appendChild(stroke("l-" + key + "-" + i, b.specTop, hairline(b.specW, 1, size), null, mask));
     });
 
     svg.appendChild(svgEl("use", {
-      href: "#sq-path", fill: "none", stroke: "url(#" + spec.rim + ")", "stroke-width": 6
+      href: "#sq-path", fill: "none", stroke: "url(#" + spec.rim + ")",
+      "stroke-width": hairline(6, 1, size)
     }));
     icon.appendChild(svg);
     wrap.appendChild(icon);
@@ -1375,8 +1394,9 @@
       // 1 — contact shadow on whatever sits behind this layer. Half of each stroke is
       //     covered by the glass, so only the part outside the shape reads.
       const sh = overlay();
-      sh.appendChild(stroke("l-" + key + "-" + i, w.shadow, w.shadowW, w.shadowBlur || "blur-l"));
-      if (isBand) sh.appendChild(stroke("b-" + key + "-" + i, w.shadow, w.shadowW, w.shadowBlur || "blur-l"));
+      const shW = hairline(w.shadowW, 2.5, size);
+      sh.appendChild(stroke("l-" + key + "-" + i, w.shadow, shW, w.shadowBlur || "blur-l"));
+      if (isBand) sh.appendChild(stroke("b-" + key + "-" + i, w.shadow, shW, w.shadowBlur || "blur-l"));
       icon.appendChild(sh);
 
       // 2 — the glass itself
@@ -1395,12 +1415,12 @@
       const mask = i % 2 ? "spec-mask-b" : "spec-mask-a";
       const sp = overlay();
       if (isBand) {
-        sp.appendChild(stroke("b-" + key + "-" + i, w.specBot, w.specW * 0.8, "blur-s", mask));
-        sp.appendChild(stroke("l-" + key + "-" + i, w.specTop, w.specW * 4, "blur-m", mask));
-        sp.appendChild(stroke("l-" + key + "-" + i, w.specTop, w.specW, null, mask));
+        sp.appendChild(stroke("b-" + key + "-" + i, w.specBot, hairline(w.specW * 0.8, 0.9, size), "blur-s", mask));
+        sp.appendChild(stroke("l-" + key + "-" + i, w.specTop, hairline(w.specW * 4, 3, size), "blur-m", mask));
+        sp.appendChild(stroke("l-" + key + "-" + i, w.specTop, hairline(w.specW, 1, size), null, mask));
       } else {
-        sp.appendChild(stroke("l-" + key + "-" + i, w.bloom, w.bloomW, "blur-m", mask));
-        sp.appendChild(stroke("l-" + key + "-" + i, w.spec, w.specW, null, mask));
+        sp.appendChild(stroke("l-" + key + "-" + i, w.bloom, hairline(w.bloomW, 3, size), "blur-m", mask));
+        sp.appendChild(stroke("l-" + key + "-" + i, w.spec, hairline(w.specW, 1, size), null, mask));
       }
       icon.appendChild(sp);
     });
@@ -1408,7 +1428,8 @@
     // rim light around the icon edge
     const rim = svgEl("svg", { class: "rim", viewBox: "0 0 " + VB + " " + VB });
     rim.appendChild(svgEl("use", {
-      href: "#sq-path", fill: "none", stroke: "url(#" + spec.rim + ")", "stroke-width": 6
+      href: "#sq-path", fill: "none", stroke: "url(#" + spec.rim + ")",
+      "stroke-width": hairline(6, 1, size)
     }));
     icon.appendChild(rim);
 
