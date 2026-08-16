@@ -39,6 +39,8 @@ struct RenderPlaceholder {
             }
         }
 
+        write(ListProbe(), scale: 2, opaque: true, to: directory, named: "probe-list")
+
         print("rendered to \(directory.path)")
     }
 
@@ -133,5 +135,35 @@ private struct IconSheet: View {
         .frame(width: 620, alignment: .leading)
         .background(dark ? Color(red: 0.055, green: 0.063, blue: 0.078) : Color(red: 0.925, green: 0.929, blue: 0.937))
         .environment(\.colorScheme, dark ? .dark : .light)
+    }
+}
+
+
+/// Does ImageRenderer draw a macOS `List`? On macOS a List is NSTableView-backed, and
+/// ImageRenderer is documented to render SwiftUI only — if the rows come out blank, the README
+/// screenshot cannot be produced this way and has to capture a real window instead.
+private struct ListProbe: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("List probe — rows below should be visible")
+                .font(.system(size: 10, design: .monospaced))
+                .padding(6)
+            Divider()
+            List {
+                ForEach(0..<5, id: \.self) { row in
+                    HStack(spacing: 8) {
+                        Image(systemName: row == 0 ? "speaker.wave.2.fill" : "music.note")
+                            .font(.system(size: 10))
+                        Text("Track \(row + 1)").font(.system(size: 12))
+                        Spacer()
+                        Text("3:12").font(.system(size: 10, design: .monospaced)).opacity(0.5)
+                    }
+                    .frame(height: 26)
+                }
+            }
+            .frame(height: 170)
+        }
+        .frame(width: 320)
+        .background(Color(red: 0.925, green: 0.929, blue: 0.937))
     }
 }
