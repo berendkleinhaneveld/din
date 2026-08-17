@@ -58,7 +58,7 @@ struct RenderReadme {
     // MARK: - Capturing the real interface
 
     @MainActor
-    private static func captureApp(appearance name: NSAppearance.Name) -> NSImage? {
+    private static func captureApp(appearance name: NSAppearance.Name) -> WindowShot? {
         let manager = PlaylistManager()
         manager.poseForScreenshot(tracks: Fixtures.tracks, playing: 0, at: 107, peaks: Fixtures.peaks)
 
@@ -83,10 +83,21 @@ struct RenderReadme {
 
         // The content view's superview is the window's frame view, which carries the title bar and
         // the traffic lights.
-        guard let frame = window.contentView?.superview else { return nil }
-        let image = snapshot(frame)
+        guard let frame = window.contentView?.superview, let image = snapshot(frame) else { return nil }
+
+        // The window never becomes key on a CI runner — there is no foreground session — so macOS
+        // draws the traffic lights inactive grey. Asking AppKit for the buttons' own frames and
+        // painting the standard colours over them is exact, where guessing at offsets would not be.
+        let lights = [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton]
+            .compactMap { window.standardWindowButton($0) }
+            .map { button -> CGRect in
+                let rect = button.convert(button.bounds, to: frame)
+                // AppKit measures from the bottom left; the composition measures from the top left.
+                return CGRect(x: rect.minX, y: frame.bounds.height - rect.maxY, width: rect.width, height: rect.height)
+            }
+
         window.orderOut(nil)
-        return image
+        return WindowShot(image: image, lights: lights)
     }
 
     /// Draws a view into a bitmap that is `scale` times its point size.
@@ -154,10 +165,16 @@ struct RenderReadme {
 
 // MARK: - Composition
 
+/// A captured window, plus where its traffic lights sit so they can be recoloured.
+private struct WindowShot {
+    let image: NSImage
+    let lights: [CGRect]
+}
+
 /// The two windows overlapping with the icon tucked in at the lower left, on transparency.
 private struct ReadmeShot: View {
-    let light: NSImage
-    let dark: NSImage
+    let light: WindowShot
+    let dark: WindowShot
 
     static let canvas = CGSize(width: 672, height: 600)
 
@@ -180,10 +197,24 @@ private struct ReadmeShot: View {
         .frame(width: Self.canvas.width, height: Self.canvas.height, alignment: .topLeading)
     }
 
-    private func window(_ image: NSImage) -> some View {
-        Image(nsImage: image)
+    private static let trafficLights: [Color] = [
+        Color(red: 1.00, green: 0.373, blue: 0.341),
+        Color(red: 0.996, green: 0.737, blue: 0.180),
+        Color(red: 0.157, green: 0.784, blue: 0.251),
+    ]
+
+    private func window(_ shot: WindowShot) -> some View {
+        Image(nsImage: shot.image)
             .resizable()
-            .frame(width: image.size.width, height: image.size.height)
+            .frame(width: shot.image.size.width, height: shot.image.size.height)
+            .overlay(alignment: .topLeading) {
+                ForEach(Array(shot.lights.enumerated()), id: \.offset) { index, rect in
+                    Circle()
+                        .fill(Self.trafficLights[index % Self.trafficLights.count])
+                        .frame(width: rect.width, height: rect.height)
+                        .offset(x: rect.minX, y: rect.minY)
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .shadow(color: .black.opacity(0.30), radius: 16, y: 8)
     }
