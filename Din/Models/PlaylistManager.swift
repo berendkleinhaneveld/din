@@ -72,6 +72,23 @@ final class PlaylistManager: ObservableObject {
         setupRemoteCommands()
     }
 
+    #if DEBUG
+        /// Poses the interface for the README screenshot: fixed tracks, fixed playback position, no
+        /// player and no persistence.
+        ///
+        /// `currentTime` is the only piece the app does not already expose — `tracks`, `currentIndex`,
+        /// `isPlaying` and `waveformPeaks` are all settable — so this exists to set that one value and
+        /// to keep the posing in one obvious place. Tooling only; `scripts/render_readme.swift` is the
+        /// sole caller and release builds do not contain it.
+        func poseForScreenshot(tracks: [Track], playing index: Int, at time: TimeInterval, peaks: [Float]) {
+            self.tracks = tracks
+            self.currentIndex = index
+            self.currentTime = time
+            self.isPlaying = true
+            self.waveformPeaks = peaks
+        }
+    #endif
+
     // MARK: - Undo
 
     /// Always resolve to the same window's undo manager.

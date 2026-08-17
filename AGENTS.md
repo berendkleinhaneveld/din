@@ -17,12 +17,21 @@ make clean     # swift package clean + remove .app bundle
 
 ## App Icon
 
-The icon is generated programmatically. Requires `uv` and macOS `sips`/`iconutil`.
+The icon is `AppIconArtwork`, a SwiftUI view, so the app and its icon are drawn by the same code.
 
 ```bash
-scripts/generate_icon.py      # renders scripts/build/icon_1024.png (uses uv run --script)
-scripts/generate_assets.sh     # converts PNG → Din/Assets/Din.icns via sips + iconutil
+scripts/render_readme.swift    # writes scripts/build/icon_1024.png and meta/Screenshot.png
+scripts/generate_assets.sh     # converts the PNG → Din/Assets/Din.icns via sips + iconutil
 ```
+
+Both need a Mac. `.github/workflows/assets.yml` runs them and commits the results, so neither image
+has to be produced by hand.
+
+The README screenshot is captured from the real interface, not assembled from mockups: the two
+windows are hosted in an `NSWindow` and their display cached into a bitmap. `ImageRenderer` cannot
+be used for it — the playlist is a `List`, which is NSTableView-backed on macOS, and `ImageRenderer`
+draws a "not supported" placeholder in its place. `PlaylistManager.poseForScreenshot` supplies the
+fixed state, and exists only for this.
 
 Icon direction studies live in `meta/icon-mockups.html` — open it in a browser. It is a
 self-contained mockup board, not part of the build.
