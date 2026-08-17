@@ -33,24 +33,20 @@ be used for it — the playlist is a `List`, which is NSTableView-backed on macO
 draws a "not supported" placeholder in its place. `PlaylistManager.poseForScreenshot` supplies the
 fixed state, and exists only for this.
 
-Icon direction studies live in `meta/icon-mockups.html` — open it in a browser. It is a
-self-contained mockup board, not part of the build.
-
 ## Seeing SwiftUI views without a Mac
 
-`ArtworkPlaceholder` is drawn rather than shipped as a bitmap, because `ContentView` backs the
-window with `.ultraThinMaterial`: the chrome's resolved colour depends on the desktop behind the
-window, so the view uses `Color.primary`, white and black at low alpha and never a fixed grey.
+SwiftUI only renders on Apple platforms, so a view cannot be looked at from a Linux or Windows
+checkout. `scripts/render_readme.swift` already does the work on a macOS runner; adding a view to it
+temporarily is the way to see one. Two things are worth knowing before trying:
 
-SwiftUI only renders on Apple platforms. `.github/workflows/render-placeholder.yml` rasterises the
-view with `ImageRenderer` on a macOS runner and commits the PNGs to `meta/renders/`, so it can be
-reviewed from anywhere. It runs on push to `claude/**` branches, or manually from the Actions tab
-once the workflow is on the default branch — `workflow_dispatch` cannot be triggered from a branch
-that the default branch does not already have the file on.
+- `ImageRenderer` renders SwiftUI only. Anything AppKit-backed — `List` most importantly — comes out
+  as a "not supported" placeholder. Host it in an `NSWindow` and cache the window's display instead.
+- A runner has no retina display and no pointing device, so a capture is 1x and gets legacy
+  always-visible scrollbars unless both are corrected. `render_readme.swift` shows how.
 
-The same pattern works for any view: add it to `ContactSheet` in `scripts/render_placeholder.swift`.
-The renderer is compiled by `swiftc` directly against the view file, so it needs no changes to
-`Package.swift` and never ships in the app.
+`ArtworkPlaceholder` is drawn rather than shipped as a bitmap so it follows the appearance live:
+every mark is `Color.primary`, white or black at low alpha, never a fixed grey, so the tile takes its
+cast from whatever the chrome resolves to.
 
 ## Architecture
 
