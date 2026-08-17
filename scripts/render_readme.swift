@@ -26,6 +26,12 @@ struct RenderReadme {
 
     @MainActor
     static func main() {
+        // Before AppKit reads it. A CI runner has no pointing device, so macOS falls back to
+        // legacy scrollers, which are always drawn and reserve width for themselves. A normal Mac
+        // uses overlay scrollers that stay hidden until you scroll — so leaving this alone would
+        // put a scrollbar in the screenshot and narrow the rows behind it.
+        UserDefaults.standard.set("WhenScrolling", forKey: "AppleShowScrollBars")
+
         // .regular rather than .accessory: the traffic lights only take their colour when the
         // window can become key, and an accessory app's windows never do.
         NSApplication.shared.setActivationPolicy(.regular)
@@ -81,6 +87,12 @@ struct RenderReadme {
         // Let layout, the waveform's TimelineView and metadata settle before the shutter.
         RunLoop.main.run(until: Date().addingTimeInterval(1.2))
 
+        // Belt and braces: if the runner still handed us legacy scrollers, take them off the
+        // scroll views directly and let the rows reclaim the width.
+        hideScrollers(in: window.contentView)
+        window.contentView?.layoutSubtreeIfNeeded()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+
         // The content view's superview is the window's frame view, which carries the title bar and
         // the traffic lights.
         guard let frame = window.contentView?.superview, let image = snapshot(frame) else { return nil }
@@ -98,6 +110,18 @@ struct RenderReadme {
 
         window.orderOut(nil)
         return WindowShot(image: image, lights: lights)
+    }
+
+    @MainActor
+    private static func hideScrollers(in view: NSView?) {
+        guard let view else { return }
+        if let scrollView = view as? NSScrollView {
+            scrollView.scrollerStyle = .overlay
+            scrollView.hasVerticalScroller = false
+            scrollView.hasHorizontalScroller = false
+            scrollView.autohidesScrollers = true
+        }
+        view.subviews.forEach { hideScrollers(in: $0) }
     }
 
     /// Draws a view into a bitmap that is `scale` times its point size.
