@@ -39,52 +39,7 @@ struct RenderPlaceholder {
             }
         }
 
-        write(ListProbe(), scale: 2, opaque: true, to: directory, named: "probe-list")
-        captureWindow(ListProbe(), size: CGSize(width: 320, height: 220), to: directory, named: "probe-window")
-
         print("rendered to \(directory.path)")
-    }
-
-    /// The other half of the List question: an NSWindow renders its own AppKit views, so if
-    /// ImageRenderer cannot draw a List, hosting one in a real window and caching its display
-    /// should. Capturing the content view's superview picks up the title bar and traffic lights
-    /// too. Never fatal — a runner without a window server should not fail the whole render.
-    @MainActor
-    private static func captureWindow<V: View>(_ view: V, size: CGSize, to directory: URL, named name: String) {
-        let host = NSHostingView(rootView: view)
-        host.frame = NSRect(origin: .zero, size: size)
-        let window = NSWindow(
-            contentRect: host.frame,
-            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
-        window.contentView = host
-        window.orderFrontRegardless()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
-
-        guard let frame = window.contentView?.superview else {
-            print("note: \(name) — no frame view, window server probably unavailable")
-            return
-        }
-        guard let rep = frame.bitmapImageRepForCachingDisplay(in: frame.bounds) else {
-            print("note: \(name) — could not make a bitmap rep")
-            return
-        }
-        frame.cacheDisplay(in: frame.bounds, to: rep)
-        guard let data = rep.representation(using: .png, properties: [:]) else {
-            print("note: \(name) — could not encode PNG")
-            return
-        }
-        let url = directory.appendingPathComponent("\(name).png")
-        do {
-            try data.write(to: url)
-            print("wrote \(url.lastPathComponent) — \(rep.pixelsWide)x\(rep.pixelsHigh)")
-        } catch {
-            print("note: \(name) — \(error.localizedDescription)")
-        }
     }
 
     @MainActor
@@ -178,35 +133,5 @@ private struct IconSheet: View {
         .frame(width: 620, alignment: .leading)
         .background(dark ? Color(red: 0.055, green: 0.063, blue: 0.078) : Color(red: 0.925, green: 0.929, blue: 0.937))
         .environment(\.colorScheme, dark ? .dark : .light)
-    }
-}
-
-
-/// Does ImageRenderer draw a macOS `List`? On macOS a List is NSTableView-backed, and
-/// ImageRenderer is documented to render SwiftUI only — if the rows come out blank, the README
-/// screenshot cannot be produced this way and has to capture a real window instead.
-private struct ListProbe: View {
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("List probe — rows below should be visible")
-                .font(.system(size: 10, design: .monospaced))
-                .padding(6)
-            Divider()
-            List {
-                ForEach(0..<5, id: \.self) { row in
-                    HStack(spacing: 8) {
-                        Image(systemName: row == 0 ? "speaker.wave.2.fill" : "music.note")
-                            .font(.system(size: 10))
-                        Text("Track \(row + 1)").font(.system(size: 12))
-                        Spacer()
-                        Text("3:12").font(.system(size: 10, design: .monospaced)).opacity(0.5)
-                    }
-                    .frame(height: 26)
-                }
-            }
-            .frame(height: 170)
-        }
-        .frame(width: 320)
-        .background(Color(red: 0.925, green: 0.929, blue: 0.937))
     }
 }
