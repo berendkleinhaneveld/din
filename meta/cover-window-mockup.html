@@ -1055,7 +1055,7 @@ const reachOf = w => w.amplitude + Math.abs(w.tilt) / 2;
    as lit from below however the crests themselves are drawn. */
 function sheetGradient(ctx, wave, side, fade, dark) {
   const start = wave.baseY - reachOf(wave);
-  const peak = dark ? 0.09 : 0.17;
+  const peak = 0.22;   // the same weight in both: it has to out-read the occlusion above
   const grad = ctx.createLinearGradient(0, 0, 0, side);
   for (let step = 0; step <= 6; step++) {
     const t = step / 6;
@@ -1111,7 +1111,7 @@ function drawArtworkPlaceholder(ctx, side, opts) {
     crestPath(ctx, wave, side, "top");
     ctx.clip();
     ctx.filter = "blur(" + (side * 0.016) + "px)";
-    ctx.strokeStyle = rgba("0,0,0", dark ? 0.20 : 0.075);
+    ctx.strokeStyle = rgba("0,0,0", dark ? 0.09 : 0.05);
     ctx.lineWidth = strokeW(0.034, 2.5, side);
     crestPath(ctx, wave, side, "none");
     ctx.stroke();

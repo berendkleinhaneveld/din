@@ -30,7 +30,7 @@ struct ArtworkPlaceholder: View {
                     // which is the tell that flips the whole tile bottom-lit.
                     WaveShape(wave: wave, closed: false)
                         .stroke(
-                            Color.black.opacity(colorScheme == .dark ? 0.20 : 0.075),
+                            Color.black.opacity(colorScheme == .dark ? 0.09 : 0.05),
                             lineWidth: IconGeometry.width(0.034, minimum: 2.5, side: side)
                         )
                         .blur(radius: side * 0.016)
@@ -71,9 +71,12 @@ struct ArtworkPlaceholder: View {
     ///
     /// White in both appearances rather than `Color.primary`: this one is a highlight, and in the
     /// light appearance a black wash below the crest would light the tile from underneath again.
+    /// It carries the same weight in both, because it has to out-read the occlusion above the crest
+    /// for the direction to be unambiguous — where the two are close the form goes bistable and the
+    /// eye is free to flip it.
     private func litFace(_ wave: Wave, fade: CGFloat) -> LinearGradient {
         let start = wave.baseY - wave.reach
-        let peak: CGFloat = colorScheme == .dark ? 0.09 : 0.17
+        let peak: CGFloat = 0.22
         var stops = (0...6).map { step -> Gradient.Stop in
             let t = CGFloat(step) / 6
             return Gradient.Stop(
