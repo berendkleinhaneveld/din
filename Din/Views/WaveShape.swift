@@ -19,10 +19,18 @@ struct Wave {
     }
 }
 
-/// The crest as an open line to stroke, or closed down to the bottom edge as a sheet to fill.
+/// The crest as an open line to stroke, or closed to one edge as a region to fill or mask with.
 struct WaveShape: Shape {
+    /// Which edge a closed shape runs to: the sheet below a crest closes down, the crevice
+    /// above it closes up.
+    enum Closure {
+        case bottom
+        case top
+    }
+
     let wave: Wave
     let closed: Bool
+    var closing: Closure = .bottom
 
     private static let steps = 120
 
@@ -38,8 +46,9 @@ struct WaveShape: Shape {
             }
         }
         if closed {
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            let edge = closing == .bottom ? rect.maxY : rect.minY
+            path.addLine(to: CGPoint(x: rect.maxX, y: edge))
+            path.addLine(to: CGPoint(x: rect.minX, y: edge))
             path.closeSubpath()
         }
         return path
@@ -53,6 +62,11 @@ enum IconGeometry {
         Wave(baseY: 0.632, amplitude: 0.088, cycles: 1.05, phase: 0.62, tilt: -0.122),
         Wave(baseY: 0.832, amplitude: 0.066, cycles: 0.88, phase: 0.34, tilt: -0.122),
     ]
+
+    /// How far below each crest its lit face fades out, as a fraction of the frame. The lower
+    /// crests get less room because they sit closer together; the icon's panes use the same three
+    /// values for their tints.
+    static let sheetFades: [CGFloat] = [0.30, 0.26, 0.22]
 
     /// Ratio Apple uses for the icon superellipse, as a continuous rounded rectangle.
     static func tileShape(side: CGFloat) -> RoundedRectangle {

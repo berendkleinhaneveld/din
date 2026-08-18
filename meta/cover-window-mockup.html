@@ -753,6 +753,11 @@ footer a { color: var(--verdigris); }
       335&nbsp;pt, which is fifteen times the size its
       <code>#Preview</code> checks.
     </p>
+    <p class="section-lede">
+      The light now comes from overhead. Each crest is occluded in the crevice above it, lit
+      along the line, and falls away beneath — where before, three flat sheets all closed to
+      the bottom edge stacked up and left the foot of the tile brighter than its head.
+    </p>
 
     <div class="strip">
       <div class="stage" id="phTile"></div>
@@ -1038,7 +1043,31 @@ const SPECULAR = {
 /* IconGeometry.width */
 const strokeW = (fraction, minimum, side) => Math.max(side * fraction, minimum);
 
-function crestPath(ctx, wave, side, closed) {
+/* How far below each crest its lift fades out — the icon's per-pane `fade`. */
+const SHEET_FADES = [0.30, 0.26, 0.22];
+
+/* Wave.reach — a tilted crest rises higher than its amplitude alone */
+const reachOf = w => w.amplitude + Math.abs(w.tilt) / 2;
+
+/* The lit face below a crest: strongest at the edge that catches the light, gone
+   within `fade` of it. A flat fill stacks — three sheets each closed to the bottom
+   means the foot of the tile carries three and the head carries none, which reads
+   as lit from below however the crests themselves are drawn. */
+function sheetGradient(ctx, wave, side, fade, dark) {
+  const start = wave.baseY - reachOf(wave);
+  const peak = dark ? 0.09 : 0.17;
+  const grad = ctx.createLinearGradient(0, 0, 0, side);
+  for (let step = 0; step <= 6; step++) {
+    const t = step / 6;
+    grad.addColorStop(Math.min(1, start + t * fade), "rgba(255,255,255," + (peak * Math.exp(-3 * t)) + ")");
+  }
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  return grad;
+}
+
+/* closeTo: "none" to stroke the crest, "bottom" for the sheet below it,
+   "top" for the region above it. */
+function crestPath(ctx, wave, side, closeTo) {
   ctx.beginPath();
   const steps = 120;
   for (let i = 0; i <= steps; i++) {
@@ -1046,9 +1075,13 @@ function crestPath(ctx, wave, side, closed) {
     const pt = [t * side, waveY(wave, t) * side];
     if (i === 0) ctx.moveTo(pt[0], pt[1]); else ctx.lineTo(pt[0], pt[1]);
   }
-  if (closed) {
+  if (closeTo === "bottom") {
     ctx.lineTo(side, side);
     ctx.lineTo(0, side);
+    ctx.closePath();
+  } else if (closeTo === "top") {
+    ctx.lineTo(side, 0);
+    ctx.lineTo(0, 0);
     ctx.closePath();
   }
 }
@@ -1071,18 +1104,22 @@ function drawArtworkPlaceholder(ctx, side, opts) {
   ctx.fillRect(0, 0, side, side);
 
   CRESTS.forEach((wave, index) => {
-    // contact shadow, stroked before the sheet so only the part above reads
+    // Contact occlusion where the sheet meets the one behind it — clipped to the
+    // near side of the crest, so it darkens the crevice above without eating into
+    // the lit face below.
     ctx.save();
+    crestPath(ctx, wave, side, "top");
+    ctx.clip();
     ctx.filter = "blur(" + (side * 0.016) + "px)";
-    ctx.strokeStyle = rgba("0,0,0", dark ? 0.30 : 0.10);
+    ctx.strokeStyle = rgba("0,0,0", dark ? 0.20 : 0.075);
     ctx.lineWidth = strokeW(0.034, 2.5, side);
-    crestPath(ctx, wave, side, false);
+    crestPath(ctx, wave, side, "none");
     ctx.stroke();
     ctx.restore();
 
-    // the sheet, filled down to the bottom edge
-    ctx.fillStyle = rgba(primary, dark ? 0.038 : 0.032);
-    crestPath(ctx, wave, side, true);
+    // the lit face, filled down to the bottom edge but fading out well before it
+    ctx.fillStyle = sheetGradient(ctx, wave, side, SHEET_FADES[index], dark);
+    crestPath(ctx, wave, side, "bottom");
     ctx.fill();
 
     // the lit crest, faded along its length
@@ -1092,7 +1129,7 @@ function drawArtworkPlaceholder(ctx, side, opts) {
     stops.forEach((stop, i) => grad.addColorStop(i / (stops.length - 1), rgba("255,255,255", base * stop)));
     ctx.strokeStyle = grad;
     ctx.lineWidth = strokeW(0.0038, 1, side);
-    crestPath(ctx, wave, side, false);
+    crestPath(ctx, wave, side, "none");
     ctx.stroke();
   });
   ctx.restore();
