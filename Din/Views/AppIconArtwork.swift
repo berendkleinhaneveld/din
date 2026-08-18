@@ -360,12 +360,12 @@ enum IconNoise {
 }
 
 #if DEBUG
-#Preview("App icon artwork") {
-    HStack(spacing: 16) {
-        AppIconArtwork().frame(width: 256, height: 256)
-        AppIconArtwork().frame(width: 104, height: 104)
-        AppIconArtwork().frame(width: 32, height: 32)
+    #Preview("App icon artwork") {
+        HStack(spacing: 16) {
+            AppIconArtwork().frame(width: 256, height: 256)
+            AppIconArtwork().frame(width: 104, height: 104)
+            AppIconArtwork().frame(width: 32, height: 32)
+        }
+        .padding(24)
     }
-    .padding(24)
-}
 #endif

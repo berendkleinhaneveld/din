@@ -68,6 +68,12 @@ cast from whatever the chrome resolves to.
 
 **Persistence:** Playlist URLs, current track index, playback position, volume, and repeat state are saved to `UserDefaults` with `Din.*` keys. State auto-saves every 5 seconds during playback and on app termination.
 
+## Pull requests
+
+`master` only accepts squash merges — the branch's commits are collapsed into one, so the pull
+request title becomes the commit message. Individual commit messages on a branch are working notes;
+put the explanation that has to survive in the pull request description.
+
 ## Checklist
 
 When implementing new features or making significant changes, update the feature list in `README.md` to keep it in sync with the actual capabilities of the app.

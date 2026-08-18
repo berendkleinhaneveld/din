@@ -4,12 +4,6 @@ name: Assets
 # own SwiftUI. Both need a Mac, so they are built here rather than by hand.
 
 on:
-  workflow_dispatch:
-    inputs:
-      commit:
-        description: "Commit the regenerated assets"
-        type: boolean
-        default: true
   push:
     branches: ["claude/**"]
     paths:
@@ -55,7 +49,7 @@ jobs:
             Din/Assets/Din.icns
 
       - name: Commit assets
-        if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || inputs.commit) }}
+        if: ${{ !cancelled() }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

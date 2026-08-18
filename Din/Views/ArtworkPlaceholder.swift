@@ -54,12 +54,12 @@ struct ArtworkPlaceholder: View {
 }
 
 #if DEBUG
-#Preview("Artwork placeholder") {
-    HStack(spacing: 16) {
-        ArtworkPlaceholder().frame(width: 104, height: 104)
-        ArtworkPlaceholder().frame(width: 64, height: 64)
-        ArtworkPlaceholder().frame(width: 26, height: 26)
+    #Preview("Artwork placeholder") {
+        HStack(spacing: 16) {
+            ArtworkPlaceholder().frame(width: 104, height: 104)
+            ArtworkPlaceholder().frame(width: 64, height: 64)
+            ArtworkPlaceholder().frame(width: 26, height: 26)
+        }
+        .padding(24)
     }
-    .padding(24)
-}
 #endif
