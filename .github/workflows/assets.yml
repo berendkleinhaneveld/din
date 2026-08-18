@@ -19,7 +19,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the app
         run: swift build
@@ -40,7 +40,7 @@ jobs:
       - name: Build the icns
         run: ./scripts/generate_assets.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: assets
           path: |
