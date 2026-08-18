@@ -3,7 +3,8 @@
 #
 # Usage: ./scripts/generate_assets.sh
 #
-# Expects scripts/build/icon_1024.png to exist (run generate_icon.py first).
+# Expects scripts/build/icon_1024.png to exist (written by scripts/render_readme.swift,
+# which the Assets workflow runs on a macOS runner).
 # Outputs Din/Assets/Din.icns
 
 set -euo pipefail
@@ -14,7 +15,7 @@ ICONSET="scripts/build/Din.iconset"
 ICNS="Din/Assets/Din.icns"
 
 if [ ! -f "$ICON" ]; then
-    echo "Error: $ICON not found. Run scripts/generate_icon.py first." >&2
+    echo "Error: $ICON not found. It is produced by scripts/render_readme.swift." >&2
     exit 1
 fi
 

@@ -1,3 +1,20 @@
+// The app's entry point — and the one file the asset build leaves out.
+//
+// `scripts/render_readme.swift` regenerates the README screenshot and the app icon by hosting the
+// real interface in a window. It is its own program, so it needs its own `@main`, and a module can
+// only have one. `.github/workflows/assets.yml` therefore compiles every source under `Din/` except
+// this one.
+//
+// So keep this file to the entry point and to things nothing else refers to. Anything declared here
+// is invisible to that build, and the failure is an awkward one to read: the moment a view or a
+// model refers to something in this file, the Assets workflow fails with `cannot find … in scope`
+// while `swift build` and CI stay green. The app is fine; only the asset job breaks, and the error
+// points at the renderer rather than at the reference that caused it.
+//
+// If something here does turn out to be needed more widely, move it to its own file rather than
+// working around the exclusion — that keeps this file's contents genuinely private to the entry
+// point, which is what makes leaving it out safe.
+
 import SwiftUI
 import UniformTypeIdentifiers
 
