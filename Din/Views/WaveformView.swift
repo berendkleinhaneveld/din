@@ -10,6 +10,12 @@ struct WaveformView: View {
     let onSeek: (TimeInterval) -> Void
     let now: Date
 
+    /// Drawn over a cover rather than over the window chrome.
+    ///
+    /// Only the unplayed bars change, and they have to: at `white.opacity(0.25)` they disappear
+    /// entirely against a pale sleeve — this album's own cover is the test case.
+    var overArtwork = false
+
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var isDragging = false
@@ -98,7 +104,7 @@ struct WaveformView: View {
                     .monospacedDigit()
             }
             .font(.system(size: 10))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(overArtwork ? AnyShapeStyle(Color.white.opacity(0.72)) : AnyShapeStyle(.secondary))
         }
     }
 
@@ -136,7 +142,12 @@ struct WaveformView: View {
 
         let playedColor = Color.accentColor
         let playedLightColor = Color.accentColor.opacity(0.45)
-        let unplayedColor = colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.25)
+        let unplayedColor: Color
+        if overArtwork {
+            unplayedColor = Color.white.opacity(0.5)
+        } else {
+            unplayedColor = colorScheme == .dark ? Color.white.opacity(0.25) : Color.black.opacity(0.25)
+        }
         let playheadX = size.width * progress
         let hoverX = hoverProgress.map { size.width * $0 }
 
@@ -241,5 +252,50 @@ struct WaveformView: View {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return "\(minutes):\(String(format: "%02d", seconds))"
+    }
+}
+
+/// `WaveformView` plus the clock that drives it.
+///
+/// The Canvas only redraws when something it reads changes, so the timeline's date is passed in to
+/// force one; and the tick only runs fast while something is actually moving. Ticking
+/// unconditionally kept redrawing an unchanging waveform 30 times a second for as long as the app
+/// stayed open, even while paused with nothing loaded.
+///
+/// Shared by the queue window and the cover overlay so the two cannot drift apart.
+struct WaveformProgress: View {
+    @ObservedObject var manager: PlaylistManager
+    var overArtwork = false
+
+    /// Drives the waveform's bar-transition animation: bumped whenever new peaks arrive, and
+    /// cleared once they stop changing.
+    @State private var peaksVersion = 0
+    @State private var waveformIsSettled = true
+
+    private var tickInterval: TimeInterval {
+        manager.isPlaying || !waveformIsSettled ? 1.0 / 30.0 : 1.0
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: tickInterval)) { context in
+            WaveformView(
+                peaks: manager.waveformPeaks,
+                currentTime: manager.displayTime,
+                duration: manager.currentTrack?.duration ?? 0,
+                onSeek: manager.seek,
+                now: context.date,
+                overArtwork: overArtwork
+            )
+        }
+        .onChange(of: manager.waveformPeaks) { _, _ in
+            waveformIsSettled = false
+            peaksVersion &+= 1
+        }
+        .task(id: peaksVersion) {
+            guard !waveformIsSettled else { return }
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
+            waveformIsSettled = true
+        }
     }
 }

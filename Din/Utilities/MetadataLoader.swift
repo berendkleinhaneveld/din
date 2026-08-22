@@ -34,6 +34,23 @@ enum MetadataLoader {
         return Track(url: url, title: title, artist: artist, album: album, duration: duration)
     }
 
+    /// The cover embedded in a file, if it has one.
+    ///
+    /// Deliberately not part of `load(url:)` and not carried on `Track`: this is wanted for the
+    /// current track alone, never for every row of the playlist, and `Track` is `Equatable` and
+    /// `Hashable` and drives a `List` — image data on it would make every diff expensive. It lands
+    /// on `PlaylistManager.currentArtwork` instead, the way `waveformPeaks` does.
+    static func artwork(url: URL) async -> Data? {
+        let asset = AVAsset(url: url)
+        guard let metadata = try? await asset.load(.metadata) else { return nil }
+        for item in metadata where item.commonKey == .commonKeyArtwork {
+            if let data = try? await item.load(.dataValue) {
+                return data
+            }
+        }
+        return nil
+    }
+
     static let supportedExtensions: Set<String> = [
         "mp3", "m4a", "aac", "wav", "aiff", "aif", "flac", "alac", "caf",
     ]

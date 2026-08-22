@@ -4,20 +4,7 @@ import UniformTypeIdentifiers
 struct ControlsView: View {
     @ObservedObject var manager: PlaylistManager
     @State private var isDropTargeted = false
-    @State private var showVolumePopover = false
-
-    /// Drives the waveform's bar-transition animation: bumped whenever new peaks
-    /// arrive, and cleared once they stop changing.
-    @State private var peaksVersion = 0
-    @State private var waveformIsSettled = true
-
-    /// Redraw the waveform Canvas at 30 fps only when something is actually
-    /// moving. Ticking unconditionally kept redrawing an unchanging waveform
-    /// 30 times a second for as long as the app stayed open, even while paused
-    /// with nothing loaded.
-    private var tickInterval: TimeInterval {
-        manager.isPlaying || !waveformIsSettled ? 1.0 / 30.0 : 1.0
-    }
+    @FocusState private var focus: PlayerControl?
 
     var body: some View {
         VStack(spacing: 6) {
@@ -40,77 +27,23 @@ struct ControlsView: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            // Transport controls (centered) + volume (right)
-            ZStack {
-                HStack(spacing: 12) {
-                    Button(action: manager.previous) {
-                        Image(systemName: "backward.fill")
-                            .font(.system(size: 14))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!manager.hasContent)
-
-                    Button(action: manager.togglePlayPause) {
-                        Image(systemName: manager.isPlaying ? "pause.fill" : "play.fill")
-                            .font(.system(size: 18))
-                            .frame(width: 24, height: 24)
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!manager.hasContent)
-
-                    Button(action: manager.next) {
-                        Image(systemName: "forward.fill")
-                            .font(.system(size: 14))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!manager.hasContent)
-                }
-
-                HStack {
-                    Spacer()
-                    Button {
-                        showVolumePopover.toggle()
-                    } label: {
-                        Image(systemName: volumeIconName)
-                            .font(.system(size: 12))
-                            .frame(width: 20, height: 20)
-                    }
-                    .buttonStyle(.plain)
-                    .popover(isPresented: $showVolumePopover, arrowEdge: .bottom) {
-                        Slider(
-                            value: Binding(
-                                get: { manager.volume },
-                                set: { manager.setVolume($0) }
-                            ), in: Float(0)...Float(1)
-                        )
-                        .frame(width: 100)
-                        .padding(8)
-                    }
-                }
+            // The column the thumbnail occupies, reserved permanently. Long titles truncate
+            // earlier than they used to, and that is the trade. It must not be released when a
+            // track has no artwork — the thumbnail is there either way, and a conditional inset
+            // would reflow the title every time the playlist crossed an art-less track.
+            .padding(.trailing, CoverThumbnail.side + CoverThumbnail.gap)
+            // Attached to the padded block rather than laid out beside it: at 55 pt the tile is
+            // taller than the two lines of type, and in flow it would push the transport row down.
+            // Nothing below the now-playing block is allowed to move. The overlay's bottom edge
+            // lands on the subtitle's — the alignment is the spec, not the resulting number — and
+            // it overflows upward into the titlebar band, which is empty anyway.
+            .overlay(alignment: .bottomTrailing) {
+                CoverThumbnail(manager: manager)
             }
 
-            // Waveform progress bar — pass context.date so the Canvas
-            // redraws each tick (SwiftUI skips redraws when no props change)
-            TimelineView(.periodic(from: .now, by: tickInterval)) { context in
-                WaveformView(
-                    peaks: manager.waveformPeaks,
-                    currentTime: manager.displayTime,
-                    duration: manager.currentTrack?.duration ?? 0,
-                    onSeek: manager.seek,
-                    now: context.date
-                )
-            }
-            .onChange(of: manager.waveformPeaks) { _, _ in
-                waveformIsSettled = false
-                peaksVersion &+= 1
-            }
-            .task(id: peaksVersion) {
-                guard !waveformIsSettled else { return }
-                try? await Task.sleep(for: .milliseconds(600))
-                guard !Task.isCancelled else { return }
-                waveformIsSettled = true
-            }
+            TransportControls(manager: manager, focus: $focus)
+
+            WaveformProgress(manager: manager)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -124,16 +57,69 @@ struct ControlsView: View {
         }
     }
 
-    private var volumeIconName: String {
-        if manager.volume <= 0 { return "speaker.slash.fill" }
-        if manager.volume < 0.33 { return "speaker.wave.1.fill" }
-        if manager.volume < 0.66 { return "speaker.wave.2.fill" }
-        return "speaker.wave.3.fill"
-    }
-
     private func handleDrop(_ providers: [NSItemProvider]) {
         DropLoader.loadURLs(from: providers) { urls in
             manager.replacePlaylist(urls: urls)
         }
+    }
+}
+
+/// The way into cover mode: the current track's artwork, sitting in the one part of the window
+/// that was already empty.
+///
+/// Always present, showing `ArtworkPlaceholder` for tracks with no embedded cover. That is what
+/// stops cover mode from having to snap back to the queue partway through a playlist, and it is
+/// what lets the inset beside it be unconditional.
+///
+/// It punches a hole in the window's drag region. Known and accepted: it is the corner furthest
+/// from where people grab a window.
+struct CoverThumbnail: View {
+    @ObservedObject var manager: PlaylistManager
+
+    @State private var isHovering = false
+    @FocusState private var isFocused: Bool
+
+    /// Inset by the window's own 12 pt gutter on the top and the side alike, so the corner reads
+    /// as square.
+    static let side: CGFloat = 55
+    /// The gap between the tile and the now-playing text it displaces.
+    static let gap: CGFloat = 22
+
+    private let cornerRadius: CGFloat = 4
+
+    /// Hover *and* keyboard focus, so the door is there for whichever one you are using.
+    private var isRevealed: Bool { isHovering || isFocused }
+
+    var body: some View {
+        Button {
+            CoverWindowController.shared.enterCoverMode()
+        } label: {
+            TrackArtwork(image: manager.currentArtwork)
+                .frame(width: Self.side, height: Self.side)
+                .clipped()
+                .overlay {
+                    // A veil with a glyph in it, rather than a glyph alone, so it reads as a door
+                    // rather than as decoration.
+                    ZStack {
+                        Color(red: 6 / 255, green: 8 / 255, blue: 7 / 255).opacity(0.5)
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(.white)
+                            .shadow(color: .black.opacity(0.6), radius: 1, y: 1)
+                    }
+                    .opacity(isRevealed ? 1 : 0)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .strokeBorder(Color.primary.opacity(0.16), lineWidth: 0.5)
+                }
+        }
+        .buttonStyle(.plain)
+        .focused($isFocused)
+        .onHover { isHovering = $0 }
+        .animation(.easeInOut(duration: 0.13), value: isRevealed)
+        .accessibilityLabel("Show album cover")
+        .help("Show album cover")
     }
 }

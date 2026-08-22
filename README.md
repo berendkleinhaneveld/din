@@ -11,6 +11,7 @@ Download latest release **[here](https://github.com/berendkleinhaneveld/din/rele
 - Drag-and-drop or open audio files (MP3, M4A, AIFF, WAV, FLAC)
 - Gapless playback for seamless transitions between tracks
 - Waveform visualization with playback progress
+- Album cover mode — collapse the window to the artwork alone, with the controls fading in over it
 - M3U8 playlist save/load
 - Open Recent menu for quick access to previous files and playlists
 - Media key support (play/pause, next, previous)
@@ -35,6 +36,7 @@ Din performs no tracking and makes no network connections whatsoever. Your music
 | Enter       | Play selected         |
 | Cmd+O       | Open files            |
 | Cmd+Shift+O | Append files          |
+| Cmd+J       | Show / hide the cover |
 | Cmd+0       | Show the Din window   |
 
 ## Build

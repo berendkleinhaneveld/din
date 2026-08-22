@@ -18,6 +18,11 @@ final class PlaylistManager: ObservableObject {
     /// Waveform peak data for the current track. Empty array if not yet available.
     @Published var waveformPeaks: [Float] = []
 
+    /// The current track's embedded cover, or nil when it has none — in which case the views draw
+    /// `ArtworkPlaceholder` instead. Kept here rather than on `Track` for the same reason as
+    /// `waveformPeaks`: see `MetadataLoader.artwork(url:)`.
+    @Published var currentArtwork: NSImage?
+
     /// Live playback time — NOT @Published so it doesn't trigger view re-renders.
     private(set) var currentTime: TimeInterval = 0
 
@@ -47,6 +52,7 @@ final class PlaylistManager: ObservableObject {
     private var tickCount = 0
     private var _suppressUndo = false
     private var waveformTask: Task<Void, Never>?
+    private var artworkTask: Task<Void, Never>?
     private var endObserver: NSObjectProtocol?
 
     /// The item currently playing, and the one queued behind it for gapless
@@ -406,6 +412,7 @@ final class PlaylistManager: ObservableObject {
             currentIndex = savedIndex
             // Pre-generate waveform for the restored track
             generateWaveform(for: tracks[savedIndex].url)
+            loadArtwork(for: tracks[savedIndex].url)
         }
         currentTime = defaults.double(forKey: "din.currentTime")
     }
@@ -502,6 +509,7 @@ final class PlaylistManager: ObservableObject {
         startTimer()
         updateNowPlayingInfo()
         generateWaveform(for: track.url)
+        loadArtwork(for: track.url)
     }
 
     /// The track that should play after the current one, honouring repeat.
@@ -561,6 +569,7 @@ final class PlaylistManager: ObservableObject {
         currentTime = 0
         updateNowPlayingInfo()
         generateWaveform(for: tracks[next].url)
+        loadArtwork(for: tracks[next].url)
         // Queue the track after that for continued gapless playback
         enqueueNextTrack()
     }
@@ -583,6 +592,17 @@ final class PlaylistManager: ObservableObject {
         }
     }
 
+    private func loadArtwork(for url: URL) {
+        artworkTask?.cancel()
+        currentArtwork = nil
+
+        artworkTask = Task {
+            let data = await MetadataLoader.artwork(url: url)
+            guard !Task.isCancelled else { return }
+            self.currentArtwork = data.flatMap(NSImage.init(data:))
+        }
+    }
+
     private func stop() {
         if let endObserver {
             NotificationCenter.default.removeObserver(endObserver)
@@ -598,6 +618,8 @@ final class PlaylistManager: ObservableObject {
         stopTimer()
         updateNowPlayingInfo()
         waveformTask?.cancel()
+        artworkTask?.cancel()
+        currentArtwork = nil
         waveformTask = nil
     }
 

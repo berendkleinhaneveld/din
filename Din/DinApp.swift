@@ -22,6 +22,7 @@ import UniformTypeIdentifiers
 struct DinApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var recentItems = RecentItems.shared
+    @StateObject private var coverWindow = CoverWindowController.shared
 
     var body: some Scene {
         WindowGroup {
@@ -31,9 +32,6 @@ struct DinApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 320, height: 500)
         .commands {
-            // Disable tabs
-            CommandGroup(replacing: .toolbar) {}
-
             CommandGroup(replacing: .newItem) {
                 Button("Open...") {
                     Self.showOpenPanel(replace: true)
@@ -90,6 +88,24 @@ struct DinApp: App {
                     (NSApp.delegate as? AppDelegate)?.showMainWindow()
                 }
                 .keyboardShortcut("0", modifiers: .command)
+            }
+
+            // The View menu. The thumbnail can't be the only way into cover mode: a menu item
+            // gives it a keyboard route and, just as importantly, a name.
+            //
+            // In the toolbar group rather than beside it, which is also what keeps the window-tab
+            // items ("Show Tab Bar", "Show All Tabs") out: replacing the group empties it either
+            // way, and an item of our own in it avoids the stray leading separator that an empty
+            // group leaves behind.
+            CommandGroup(replacing: .toolbar) {
+                Toggle(
+                    "Album Cover",
+                    isOn: Binding(
+                        get: { coverWindow.isCoverMode },
+                        set: { _ in coverWindow.toggle() }
+                    )
+                )
+                .keyboardShortcut("j")
             }
 
             CommandMenu("Playback") {
@@ -176,9 +192,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func findContentWindow() -> NSWindow? {
-        // Panels (popovers, the volume slider, save/open sheets) can become key
-        // but never main, so `canBecomeMain` keeps us on the real content window.
-        NSApp.windows.first { $0.canBecomeMain && !($0 is NSPanel) }
+        // Lives in `CoverWindowController.swift` rather than here: cover mode needs the same
+        // window, and this file is the one the asset build leaves out.
+        ContentWindow.find()
     }
 
     /// Bring the content window back, whatever state it was left in.
@@ -207,6 +223,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
             PlaylistManager.shared.saveState()
+            CoverWindowController.shared.saveState()
         }
     }
 
@@ -252,6 +269,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             for window in NSApp.windows where window !== main && window.isVisible && window.canBecomeMain {
                 window.close()
             }
+
+            // Come back in the shape the app was quit in, now that there is a window to reshape.
+            CoverWindowController.shared.restoreOnLaunch()
         }
 
         // Double-click on playlist row → play selected track

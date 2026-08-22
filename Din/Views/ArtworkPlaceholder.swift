@@ -15,13 +15,21 @@ import SwiftUI
 /// The light comes from above, and the whole tile is built to say so: each crest is occluded in the
 /// crevice above it, lit along the line itself, and falls away beneath.
 struct ArtworkPlaceholder: View {
+    /// Whether to clip to the icon's superellipse and rim it.
+    ///
+    /// True in the 55 pt thumbnail, where the tile reads as the app's mark and says *this track has
+    /// no cover*. False filling the cover window, where the same tile reads as a very large app icon
+    /// in a box — at that size the crests alone read as artwork, which is what the view is standing
+    /// in for.
+    var tiled = true
+
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         GeometryReader { geometry in
             let side = min(geometry.size.width, geometry.size.height)
             ZStack {
-                Color.primary.opacity(colorScheme == .dark ? 0.070 : 0.055)
+                Color.primary.opacity(groundOpacity)
 
                 ForEach(Array(IconGeometry.crests.enumerated()), id: \.offset) { index, wave in
                     // Contact occlusion in the crevice where this sheet meets the one behind it.
@@ -47,17 +55,36 @@ struct ArtworkPlaceholder: View {
                         .mask(IconGeometry.specularFade(alternate: !index.isMultiple(of: 2)))
                 }
             }
-            .clipShape(IconGeometry.tileShape(side: side))
-            .overlay(
-                IconGeometry.tileShape(side: side)
-                    .strokeBorder(
-                        Color.primary.opacity(0.13),
-                        lineWidth: IconGeometry.width(0.006, minimum: 1, side: side)
-                    )
-            )
+            .clipShape(tileClip(side: side))
+            .overlay {
+                if tiled {
+                    IconGeometry.tileShape(side: side)
+                        .strokeBorder(
+                            Color.primary.opacity(0.13),
+                            lineWidth: IconGeometry.width(0.006, minimum: 1, side: side)
+                        )
+                }
+            }
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityLabel("No artwork")
+    }
+
+    /// The well the crests sit in.
+    ///
+    /// Untiled it has to be deeper. The tile's rim is half of what makes the small version read;
+    /// take it away and fill a whole window with what is left, and in the light appearance a white
+    /// crest on a near-white ground has almost no range to register in — the same argument the
+    /// well exists for, one size up.
+    private var groundOpacity: Double {
+        if colorScheme == .dark { return tiled ? 0.070 : 0.085 }
+        return tiled ? 0.055 : 0.12
+    }
+
+    /// The superellipse, or the square the crests were drawn into. Untiled still clips: the crests
+    /// run past the frame's edges by design, and the icon relies on the tile to cut them off.
+    private func tileClip(side: CGFloat) -> AnyShape {
+        tiled ? AnyShape(IconGeometry.tileShape(side: side)) : AnyShape(Rectangle())
     }
 
     /// The face below a crest, lit strongest at the edge that catches the light and gone within
@@ -89,9 +116,29 @@ struct ArtworkPlaceholder: View {
     }
 }
 
+/// The current track's cover, or the drawn placeholder when it has none.
+///
+/// The placeholder is why the thumbnail can be unconditional: with something to show for every
+/// track, cover mode never has to snap back to the queue partway through a playlist.
+struct TrackArtwork: View {
+    let image: NSImage?
+    var tiled = true
+
+    var body: some View {
+        if let image {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+        } else {
+            ArtworkPlaceholder(tiled: tiled)
+        }
+    }
+}
+
 #if DEBUG
     #Preview("Artwork placeholder") {
         HStack(spacing: 16) {
+            ArtworkPlaceholder(tiled: false).frame(width: 104, height: 104)
             ArtworkPlaceholder().frame(width: 104, height: 104)
             ArtworkPlaceholder().frame(width: 64, height: 64)
             ArtworkPlaceholder().frame(width: 26, height: 26)

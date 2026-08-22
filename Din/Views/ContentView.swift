@@ -2,8 +2,29 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var manager: PlaylistManager
+    @ObservedObject private var coverWindow = CoverWindowController.shared
 
     var body: some View {
+        if coverWindow.isCoverMode {
+            CoverView(manager: manager)
+                // `.hiddenTitleBar` still insets its content by the titlebar's height, and the
+                // cover wants none of it: artwork edge to edge.
+                //
+                // The clamps are on the width alone. A minimum height would arrive at the window
+                // as a *content* minimum and come back out inflated by the titlebar's height,
+                // which is enough to stop the square being square at the bottom clamp; the 1:1
+                // aspect `CoverWindowController` locks carries these over to the height anyway.
+                .frame(
+                    minWidth: CoverWindowController.minSide,
+                    maxWidth: CoverWindowController.maxSide
+                )
+                .ignoresSafeArea()
+        } else {
+            queue
+        }
+    }
+
+    private var queue: some View {
         VStack(spacing: 0) {
             ControlsView(manager: manager)
 

@@ -44,6 +44,10 @@ temporarily is the way to see one. Two things are worth knowing before trying:
 - A runner has no retina display and no pointing device, so a capture is 1x and gets legacy
   always-visible scrollbars unless both are corrected. `render_readme.swift` shows how.
 
+`CoverView` carries a `#Preview` and a DEBUG-only `revealedForCapture`, which holds its hover overlay
+open for anything looking at the view without a pointer — the same role `PlaylistManager.poseForScreenshot`
+plays for the screenshot.
+
 `ArtworkPlaceholder` is drawn rather than shipped as a bitmap so it follows the appearance live: the
 ground and the rim are `Color.primary` at low alpha, never a fixed grey, so the tile takes its cast
 from whatever the chrome resolves to. What the light does is fixed — highlights white, occlusion
@@ -62,13 +66,19 @@ light source with it.
 - `Din/Models/Track.swift` — Simple value type with metadata fields
 - `Din/Utilities/MetadataLoader.swift` — Async AVAsset metadata extraction; also handles directory recursion for audio file discovery
 - `Din/Utilities/DropLoader.swift` — Shared drag-and-drop URL collection (order-preserving, thread-safe)
-- `Din/Views/` — `ContentView` (root layout + status bar), `ControlsView` (transport + volume + progress), `PlaylistView` (list with drag/drop/reorder/context menus), `WaveformView` (seekable waveform with drag/hover + bar transitions)
+- `Din/Models/CoverWindowController.swift` — cover mode: the window collapsing between the queue and a square of artwork, and `ContentWindow.find()`, the content-window lookup `AppDelegate` shares with it
+- `Din/Views/` — `ContentView` (root layout + status bar, and the switch between the two shapes), `ControlsView` (transport + volume + progress, and the cover thumbnail), `CoverView` (the artwork square and its hover overlay), `TransportControls` (the transport row, shared by both), `PlaylistView` (list with drag/drop/reorder/context menus), `WaveformView` (seekable waveform with drag/hover + bar transitions, plus `WaveformProgress`, the tick that drives it)
 
 **Drag & drop:** Supported in both `ControlsView` (replaces playlist) and `PlaylistView` (adds to playlist, supports positional insert via `onInsert`). Both go through `DropLoader`, which resolves providers concurrently but keeps drop order and never mutates shared state off the main queue.
 
 **Window lifecycle:** The app deliberately outlives its window (`applicationShouldTerminateAfterLastWindowClosed` returns false) so playback continues. `AppDelegate.mainWindow` therefore resolves the content window *lazily* and pins it with `isReleasedWhenClosed = false`; `applicationShouldHandleReopen` must return `true` whenever there is no window to restore, or the app becomes unreachable. `Cmd+0` ("Din Window") is the menu-bar fallback, since the File menu's "New Window" item is replaced.
 
-**Persistence:** Playlist URLs, current track index, playback position, volume, and repeat state are saved to `UserDefaults` with `Din.*` keys. State auto-saves every 5 seconds during playback and on app termination.
+**Persistence:** Playlist URLs, current track index, playback position, volume, repeat state, and cover mode with its two remembered sizes are saved to `UserDefaults` with lowercase `din.*` keys. State auto-saves every 5 seconds during playback and on app termination.
+
+**Cover mode:** One window with two shapes, not two windows — the window is already `.hiddenTitleBar`, and `AppDelegate.shouldHandleTransportKey` gates on the event's window being the main one, so a second window would silently kill the transport keys. Two things about it are easy to get wrong and are commented where they bite:
+
+- The window's size limits belong to SwiftUI, the aspect ratio to `CoverWindowController`. SwiftUI rewrites `minSize`/`maxSize` from the hosted view on every layout pass, so setting them on the window does not stick; and a minimum declared in SwiftUI arrives as a *content* minimum, which AppKit inflates by the titlebar's height even on a `fullSizeContentView` window. Hence clamps on the width only, carried to the height by a 1:1 `aspectRatio`.
+- Artwork lives on `PlaylistManager.currentArtwork`, never on `Track`, which is `Equatable`/`Hashable` and drives a `List`.
 
 ## Pull requests
 
