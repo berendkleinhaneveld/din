@@ -44,9 +44,11 @@ temporarily is the way to see one. Two things are worth knowing before trying:
 - A runner has no retina display and no pointing device, so a capture is 1x and gets legacy
   always-visible scrollbars unless both are corrected. `render_readme.swift` shows how.
 
-`ArtworkPlaceholder` is drawn rather than shipped as a bitmap so it follows the appearance live:
-every mark is `Color.primary`, white or black at low alpha, never a fixed grey, so the tile takes its
-cast from whatever the chrome resolves to.
+`ArtworkPlaceholder` is drawn rather than shipped as a bitmap so it follows the appearance live: the
+ground and the rim are `Color.primary` at low alpha, never a fixed grey, so the tile takes its cast
+from whatever the chrome resolves to. What the light does is fixed — highlights white, occlusion
+black, in both appearances — because a lit edge that inverted with the appearance would move the
+light source with it.
 
 ## Architecture
 
