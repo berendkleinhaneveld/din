@@ -8,21 +8,18 @@ import SwiftUI
 /// highlights are white and occlusion is black in both appearances, because a lit edge that
 /// inverted with the appearance would move the light source with it.
 ///
-/// The tile itself is a shallow well — darker than the chrome in light mode, lighter in dark. That
-/// well is what gives the crest highlight somewhere to sit; on a bare light chrome a white line has
+/// The ground is a shallow well — darker than the chrome in light mode, lighter in dark. That well
+/// is what gives the crest highlight somewhere to sit; on a bare light chrome a white line has
 /// almost no range left to register in.
 ///
-/// The light comes from above, and the whole tile is built to say so: each crest is occluded in the
-/// crevice above it, lit along the line itself, and falls away beneath.
+/// It fills its frame edge to edge, with no superellipse and no rim. Clipped to the icon's tile it
+/// read as the app's mark rather than as a cover — a very large app icon in a box at 335 pt, and a
+/// small one in a box at 55 pt. Whatever shows it owns the shape: the thumbnail rounds its own
+/// corners, and the cover window has none to round.
+///
+/// The light comes from above, and the whole thing is built to say so: each crest is occluded in
+/// the crevice above it, lit along the line itself, and falls away beneath.
 struct ArtworkPlaceholder: View {
-    /// Whether to clip to the icon's superellipse and rim it.
-    ///
-    /// True in the 55 pt thumbnail, where the tile reads as the app's mark and says *this track has
-    /// no cover*. False filling the cover window, where the same tile reads as a very large app icon
-    /// in a box — at that size the crests alone read as artwork, which is what the view is standing
-    /// in for.
-    var tiled = true
-
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -55,16 +52,9 @@ struct ArtworkPlaceholder: View {
                         .mask(IconGeometry.specularFade(alternate: !index.isMultiple(of: 2)))
                 }
             }
-            .clipShape(tileClip(side: side))
-            .overlay {
-                if tiled {
-                    IconGeometry.tileShape(side: side)
-                        .strokeBorder(
-                            Color.primary.opacity(0.13),
-                            lineWidth: IconGeometry.width(0.006, minimum: 1, side: side)
-                        )
-                }
-            }
+            // The crests run past the frame's edges by design; without the icon's tile to cut
+            // them off, something still has to.
+            .clipShape(Rectangle())
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityLabel("No artwork")
@@ -72,19 +62,12 @@ struct ArtworkPlaceholder: View {
 
     /// The well the crests sit in.
     ///
-    /// Untiled it has to be deeper. The tile's rim is half of what makes the small version read;
-    /// take it away and fill a whole window with what is left, and in the light appearance a white
-    /// crest on a near-white ground has almost no range to register in — the same argument the
-    /// well exists for, one size up.
+    /// Deeper than the icon's, which has a rim to define it. With the rim gone the ground is the
+    /// only thing separating the crests from whatever sits behind them, and in the light
+    /// appearance a white crest on a near-white ground has almost no range left to register in —
+    /// the same argument the well exists for in the first place.
     private var groundOpacity: Double {
-        if colorScheme == .dark { return tiled ? 0.070 : 0.085 }
-        return tiled ? 0.055 : 0.12
-    }
-
-    /// The superellipse, or the square the crests were drawn into. Untiled still clips: the crests
-    /// run past the frame's edges by design, and the icon relies on the tile to cut them off.
-    private func tileClip(side: CGFloat) -> AnyShape {
-        tiled ? AnyShape(IconGeometry.tileShape(side: side)) : AnyShape(Rectangle())
+        colorScheme == .dark ? 0.085 : 0.12
     }
 
     /// The face below a crest, lit strongest at the edge that catches the light and gone within
@@ -122,7 +105,6 @@ struct ArtworkPlaceholder: View {
 /// track, cover mode never has to snap back to the queue partway through a playlist.
 struct TrackArtwork: View {
     let image: NSImage?
-    var tiled = true
 
     var body: some View {
         if let image {
@@ -130,7 +112,7 @@ struct TrackArtwork: View {
                 .resizable()
                 .aspectRatio(contentMode: .fill)
         } else {
-            ArtworkPlaceholder(tiled: tiled)
+            ArtworkPlaceholder()
         }
     }
 }
@@ -138,7 +120,6 @@ struct TrackArtwork: View {
 #if DEBUG
     #Preview("Artwork placeholder") {
         HStack(spacing: 16) {
-            ArtworkPlaceholder(tiled: false).frame(width: 104, height: 104)
             ArtworkPlaceholder().frame(width: 104, height: 104)
             ArtworkPlaceholder().frame(width: 64, height: 64)
             ArtworkPlaceholder().frame(width: 26, height: 26)

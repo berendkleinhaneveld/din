@@ -44,9 +44,9 @@ temporarily is the way to see one. Two things are worth knowing before trying:
 - A runner has no retina display and no pointing device, so a capture is 1x and gets legacy
   always-visible scrollbars unless both are corrected. `render_readme.swift` shows how.
 
-`CoverView` carries a `#Preview` and a DEBUG-only `revealedForCapture`, which holds its hover overlay
-open for anything looking at the view without a pointer — the same role `PlaylistManager.poseForScreenshot`
-plays for the screenshot.
+`ContentView` carries a `#Preview` and a DEBUG-only `pose`, which forces cover mode and holds its
+hover overlay open for anything looking at the view without a window to collapse or a pointer to
+hover with — the same role `PlaylistManager.poseForScreenshot` plays for the screenshot.
 
 `ArtworkPlaceholder` is drawn rather than shipped as a bitmap so it follows the appearance live: the
 ground and the rim are `Color.primary` at low alpha, never a fixed grey, so the tile takes its cast
@@ -67,7 +67,7 @@ light source with it.
 - `Din/Utilities/MetadataLoader.swift` — Async AVAsset metadata extraction; also handles directory recursion for audio file discovery
 - `Din/Utilities/DropLoader.swift` — Shared drag-and-drop URL collection (order-preserving, thread-safe)
 - `Din/Models/CoverWindowController.swift` — cover mode: the window collapsing between the queue and a square of artwork, and `ContentWindow.find()`, the content-window lookup `AppDelegate` shares with it
-- `Din/Views/` — `ContentView` (root layout + status bar, and the switch between the two shapes), `ControlsView` (transport + volume + progress, and the cover thumbnail), `CoverView` (the artwork square and its hover overlay), `TransportControls` (the transport row, shared by both), `PlaylistView` (list with drag/drop/reorder/context menus), `WaveformView` (seekable waveform with drag/hover + bar transitions, plus `WaveformProgress`, the tick that drives it)
+- `Din/Views/` — `ContentView` (root layout + status bar, and the composition of the two window shapes), `ControlsView` (the now-playing block — transport, volume, progress, cover thumbnail — shared by both shapes), `CoverBackdrop` (the artwork and the close button behind it), `TransportControls` (the transport row), `PlaylistView` (list with drag/drop/reorder/context menus), `WaveformView` (seekable waveform with drag/hover + bar transitions, plus `WaveformProgress`, the tick that drives it)
 
 **Drag & drop:** Supported in both `ControlsView` (replaces playlist) and `PlaylistView` (adds to playlist, supports positional insert via `onInsert`). Both go through `DropLoader`, which resolves providers concurrently but keeps drop order and never mutates shared state off the main queue.
 
@@ -79,6 +79,8 @@ light source with it.
 
 - The window's size limits belong to SwiftUI, the aspect ratio to `CoverWindowController`. SwiftUI rewrites `minSize`/`maxSize` from the hosted view on every layout pass, so setting them on the window does not stick; and a minimum declared in SwiftUI arrives as a *content* minimum, which AppKit inflates by the titlebar's height even on a `fullSizeContentView` window. Hence clamps on the width only, carried to the height by a 1:1 `aspectRatio`.
 - Artwork lives on `PlaylistManager.currentArtwork`, never on `Track`, which is `Equatable`/`Hashable` and drives a `List`.
+- The two shapes are one view tree, not an `if`/`else` between two. `ControlsView` holds the same slot in `ContentView`'s `VStack` in both, restyled by `overArtwork` rather than rebuilt, because structural position is what SwiftUI keys identity on — and losing that identity resets the waveform's bar-transition state, dropping the bars to zero and growing them back on every collapse. Modifiers on that path must vary by *value*, never by wrapping the view in a conditional.
+- `.ignoresSafeArea` goes outermost, after the frame. Applied inside it, the expansion lands on the wrong view and the block's own padding ends up outside the window.
 
 ## Pull requests
 

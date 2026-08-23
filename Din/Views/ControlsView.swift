@@ -1,59 +1,96 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// The now-playing block: title, transport, waveform. One view, both window shapes.
+///
+/// `overArtwork` restyles it rather than replacing it — padding, colours and the scrim behind it
+/// all vary, but every modifier stays on the chain in both modes. Swapping modifiers in and out
+/// with an `if` would change the view's identity and cost it its state, which is the whole thing
+/// this sharing exists to protect: `WaveformProgress` and `WaveformView` below it hold the
+/// waveform's bar-transition state, and losing it drops the bars to zero and grows them back on
+/// every collapse.
 struct ControlsView: View {
     @ObservedObject var manager: PlaylistManager
+
+    /// Drawn over a cover rather than over the window chrome.
+    var overArtwork = false
+    /// Whether the block is showing. Always true in the queue window; over a cover it follows the
+    /// pointer and the keyboard focus.
+    var isRevealed = true
+    @FocusState.Binding var focus: PlayerControl?
+
     @State private var isDropTargeted = false
-    @FocusState private var focus: PlayerControl?
 
     var body: some View {
         VStack(spacing: 6) {
-            // Now playing info — fixed height so controls don't shift
-            VStack(alignment: .leading, spacing: 1) {
-                Text(manager.currentTrack?.title ?? "Din")
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            nowPlaying
 
-                Group {
-                    if let subtitle = manager.currentTrack?.subtitle {
-                        Text(subtitle)
-                    } else {
-                        Text(" ")
-                    }
-                }
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            // The column the thumbnail occupies, reserved permanently. Long titles truncate
-            // earlier than they used to, and that is the trade. It must not be released when a
-            // track has no artwork — the thumbnail is there either way, and a conditional inset
-            // would reflow the title every time the playlist crossed an art-less track.
-            .padding(.trailing, CoverThumbnail.side + CoverThumbnail.gap)
-            // Attached to the padded block rather than laid out beside it: at 55 pt the tile is
-            // taller than the two lines of type, and in flow it would push the transport row down.
-            // Nothing below the now-playing block is allowed to move. The overlay's bottom edge
-            // lands on the subtitle's — the alignment is the spec, not the resulting number — and
-            // it overflows upward into the titlebar band, which is empty anyway.
-            .overlay(alignment: .bottomTrailing) {
-                CoverThumbnail(manager: manager)
-            }
+            TransportControls(manager: manager, overArtwork: overArtwork, focus: $focus)
 
-            TransportControls(manager: manager, focus: $focus)
-
-            WaveformProgress(manager: manager)
+            WaveformProgress(manager: manager, overArtwork: overArtwork)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 4)
-                .fill(.white.opacity(isDropTargeted ? 0.1 : 0))
-        )
+        // The cover's generous top padding is load-bearing — see `CoverScrim.bottom`.
+        .padding(.top, overArtwork ? 84 : 8)
+        .padding(.bottom, overArtwork ? 10 : 8)
+        .background(background)
+        .opacity(isRevealed ? 1 : 0)
+        .allowsHitTesting(isRevealed)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             handleDrop(providers)
             return true
+        }
+    }
+
+    private var nowPlaying: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(manager.currentTrack?.title ?? "Din")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(overArtwork ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Group {
+                if let subtitle = manager.currentTrack?.subtitle {
+                    Text(subtitle)
+                } else {
+                    Text(" ")
+                }
+            }
+            .font(.system(size: 11))
+            .foregroundStyle(
+                overArtwork ? AnyShapeStyle(Color.white.opacity(0.68)) : AnyShapeStyle(.secondary)
+            )
+            .lineLimit(1)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        // Insurance for covers brighter than the scrim: every mark carries its own shadow, so the
+        // overlay never depends on the gradient alone.
+        .shadow(color: .black.opacity(overArtwork ? 0.65 : 0), radius: 1.5, y: 1)
+        // The column the thumbnail occupies, reserved permanently while the queue is showing. Long
+        // titles truncate earlier than they used to, and that is the trade. It must not be released
+        // when a track has no artwork — the thumbnail is there either way, and a conditional inset
+        // would reflow the title every time the playlist crossed an art-less track.
+        .padding(.trailing, overArtwork ? 0 : CoverThumbnail.side + CoverThumbnail.gap)
+        // Attached to the padded block rather than laid out beside it: at 55 pt the tile is taller
+        // than the two lines of type, and in flow it would push the transport row down. Nothing
+        // below the now-playing block is allowed to move. The overlay's bottom edge lands on the
+        // subtitle's — the alignment is the spec, not the resulting number — and it overflows
+        // upward into the titlebar band, which is empty anyway.
+        .overlay(alignment: .bottomTrailing) {
+            CoverThumbnail(manager: manager)
+                .opacity(overArtwork ? 0 : 1)
+                .disabled(overArtwork)
+        }
+    }
+
+    private var background: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 4)
+                .fill(.white.opacity(isDropTargeted ? 0.1 : 0))
+
+            CoverScrim.bottom
+                .opacity(overArtwork ? 1 : 0)
         }
     }
 

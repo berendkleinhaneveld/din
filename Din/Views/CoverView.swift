@@ -1,60 +1,23 @@
 import SwiftUI
 
-/// The window's other shape: the current track's cover, edge to edge.
+/// What cover mode adds behind and above the now-playing block: the artwork itself, and the top
+/// gradient carrying the close button.
 ///
-/// At rest there is nothing else — no chrome, no text, no traffic lights. Everything fades in on
-/// pointer-over, and on focus-within so the overlay is reachable by keyboard rather than only by
-/// mouse.
-///
-/// The bottom half is the top of `ControlsView` with a gradient behind it; the pieces they share
-/// are `TransportControls` and `WaveformProgress`, so the two cannot drift apart.
-struct CoverView: View {
+/// The block in front of it is `ControlsView`, the same one the queue window uses — see
+/// `ContentView`. Only the pieces that exist in one mode and not the other live here.
+struct CoverBackdrop: View {
     @ObservedObject var manager: PlaylistManager
-
-    @State private var isHovering = false
-    @FocusState private var focus: PlayerControl?
-
-    #if DEBUG
-        /// Holds the overlay open for anything looking at this view without a pointer to hover
-        /// with — the previews below, and offscreen captures. Mirrors
-        /// `PlaylistManager.poseForScreenshot`: it exists only so the view can be seen.
-        var revealedForCapture = false
-    #endif
-
-    /// The scrims' colour, near-black but not black, so it sits on artwork rather than punching a
-    /// hole in it.
-    private static let scrim = Color(red: 6 / 255, green: 8 / 255, blue: 7 / 255)
-
-    private var isRevealed: Bool {
-        #if DEBUG
-            if revealedForCapture { return true }
-        #endif
-        return isHovering || focus != nil
-    }
+    var isRevealed: Bool
+    @FocusState.Binding var focus: PlayerControl?
 
     var body: some View {
-        TrackArtwork(image: manager.currentArtwork, tiled: false)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .clipped()
-            .overlay {
-                overlay
-                    .opacity(isRevealed ? 1 : 0)
-            }
-            .background(.ultraThinMaterial)
-            .onHover { isHovering = $0 }
-            .animation(.easeInOut(duration: 0.17), value: isRevealed)
-    }
+        ZStack(alignment: .top) {
+            TrackArtwork(image: manager.currentArtwork)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
 
-    private var overlay: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                topBand
-                Spacer(minLength: 0)
-            }
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                bottomBand
-            }
+            topBand
+                .opacity(isRevealed ? 1 : 0)
         }
     }
 
@@ -67,17 +30,7 @@ struct CoverView: View {
         .padding(.top, 11)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .frame(height: 72, alignment: .top)
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: Self.scrim.opacity(0.72), location: 0),
-                    .init(color: Self.scrim.opacity(0.36), location: 0.45),
-                    .init(color: Self.scrim.opacity(0), location: 1),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .background(CoverScrim.top)
     }
 
     /// Corner arrows pointing inward rather than a ✕.
@@ -105,50 +58,39 @@ struct CoverView: View {
         .accessibilityLabel("Back to the queue")
         .help("Back to the queue")
     }
+}
 
-    private var bottomBand: some View {
-        VStack(spacing: 6) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(manager.currentTrack?.title ?? "Din")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
+/// The two gradients the cover's overlay sits on.
+///
+/// Near-black rather than black, so they sit on artwork rather than punching a hole in it.
+enum CoverScrim {
+    private static let colour = Color(red: 6 / 255, green: 8 / 255, blue: 7 / 255)
 
-                Text(manager.currentTrack?.subtitle ?? " ")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.white.opacity(0.68))
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            // Insurance for covers brighter than the scrim: every mark carries its own shadow, so
-            // the overlay never depends on the gradient alone.
-            .shadow(color: .black.opacity(0.65), radius: 1.5, y: 1)
+    static let top = LinearGradient(
+        stops: [
+            .init(color: colour.opacity(0.72), location: 0),
+            .init(color: colour.opacity(0.36), location: 0.45),
+            .init(color: colour.opacity(0), location: 1),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
 
-            TransportControls(manager: manager, overArtwork: true, focus: $focus)
-
-            WaveformProgress(manager: manager, overArtwork: true)
-        }
-        // The large top padding is load-bearing: it pushes the gradient's soft end well above the
-        // text, so the title sits on the opaque part of the ramp rather than on a bleached patch
-        // of sleeve.
-        .padding(.top, 84)
-        .padding(.horizontal, 12)
-        .padding(.bottom, 10)
-        .background(
-            LinearGradient(
-                stops: [
-                    .init(color: Self.scrim.opacity(0.96), location: 0),
-                    .init(color: Self.scrim.opacity(0.92), location: 0.30),
-                    .init(color: Self.scrim.opacity(0.74), location: 0.55),
-                    .init(color: Self.scrim.opacity(0.40), location: 0.76),
-                    .init(color: Self.scrim.opacity(0.12), location: 0.90),
-                    .init(color: Self.scrim.opacity(0), location: 1),
-                ],
-                startPoint: .bottom,
-                endPoint: .top
-            )
-        )
-    }
+    /// Paired with the 84 pt of top padding on the block in front of it, which is load-bearing: it
+    /// pushes this ramp's soft end well above the text, so the title sits on the opaque part rather
+    /// than on a bleached patch of sleeve.
+    static let bottom = LinearGradient(
+        stops: [
+            .init(color: colour.opacity(0.96), location: 0),
+            .init(color: colour.opacity(0.92), location: 0.30),
+            .init(color: colour.opacity(0.74), location: 0.55),
+            .init(color: colour.opacity(0.40), location: 0.76),
+            .init(color: colour.opacity(0.12), location: 0.90),
+            .init(color: colour.opacity(0), location: 1),
+        ],
+        startPoint: .bottom,
+        endPoint: .top
+    )
 }
 
 #if DEBUG
@@ -165,9 +107,9 @@ struct CoverView: View {
             peaks: (0..<220).map { Float(abs(sin(Double($0) * 0.21)) * 0.7 + 0.12) })
 
         return HStack(spacing: 24) {
-            CoverView(manager: manager)
+            ContentView(manager: manager, pose: .coverAtRest)
                 .frame(width: 335, height: 335)
-            CoverView(manager: manager, revealedForCapture: true)
+            ContentView(manager: manager, pose: .cover)
                 .frame(width: 335, height: 335)
         }
         .padding(24)
