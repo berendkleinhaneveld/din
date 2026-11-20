@@ -24,9 +24,12 @@ struct DinApp: App {
     @StateObject private var recentItems = RecentItems.shared
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: AppDelegate.mainWindowID) {
             ContentView(manager: .shared)
         }
+        // Without this, every file opened from Finder would spawn another window. The cost is that
+        // SwiftUI then creates no window for a launch that comes from opening a file, so the app
+        // delegate has to create it (see `AppDelegate.showMainWindow`).
         .handlesExternalEvents(matching: [])
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 320, height: 500)
@@ -82,15 +85,7 @@ struct DinApp: App {
                 }
             }
 
-            // Recovery path: the File menu's "New Window" item is replaced above,
-            // so without this there is no menu command that can bring the window
-            // back once it has been closed.
-            CommandGroup(after: .windowList) {
-                Button("Din Window") {
-                    (NSApp.delegate as? AppDelegate)?.showMainWindow()
-                }
-                .keyboardShortcut("0", modifiers: .command)
-            }
+            MainWindowCommands(appDelegate: appDelegate)
 
             CommandMenu("Playback") {
                 Button("Volume Up") {
@@ -104,6 +99,33 @@ struct DinApp: App {
                     mgr.setVolume(max(0, mgr.volume - 0.1))
                 }
                 .keyboardShortcut("-", modifiers: .command)
+            }
+        }
+    }
+
+    /// The "Din Window" command, and the hand-over of `openWindow` to the app delegate.
+    ///
+    /// `openWindow` is the only supported way to create a `WindowGroup` window from code, and it
+    /// can only be read from a view or a `Commands`. The menu bar exists whether or not a window
+    /// does, so this is where the delegate gets it from.
+    ///
+    /// The delegate is passed in rather than looked up through `NSApp.delegate`: with
+    /// `@NSApplicationDelegateAdaptor`, that is SwiftUI's own delegate, never an `AppDelegate`.
+    private struct MainWindowCommands: Commands {
+        let appDelegate: AppDelegate
+        @Environment(\.openWindow) private var openWindow
+
+        var body: some Commands {
+            let _ = appDelegate.adopt(openWindow)
+
+            // Recovery path: the File menu's "New Window" item is replaced above,
+            // so without this there is no menu command that can bring the window
+            // back once it has been closed.
+            CommandGroup(after: .windowList) {
+                Button("Din Window") {
+                    appDelegate.showMainWindow()
+                }
+                .keyboardShortcut("0", modifiers: .command)
             }
         }
     }
@@ -155,6 +177,15 @@ struct DinApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    static let mainWindowID = "main"
+
+    /// Creates the content window. Captured from the menu bar by `MainWindowCommands`, which is
+    /// built during launch, so it can be missing only for the first moments of it.
+    private var openWindow: OpenWindowAction?
+
+    /// A window was asked for before `openWindow` arrived; create it as soon as it does.
+    private var windowRequestedEarly = false
+
     /// Strong reference to the content window, paired with `isReleasedWhenClosed = false`
     /// so closing it doesn't destroy it and it can be shown again later.
     private var cachedWindow: NSWindow?
@@ -181,9 +212,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.windows.first { $0.canBecomeMain && !($0 is NSPanel) }
     }
 
-    /// Bring the content window back, whatever state it was left in.
+    /// Bring the content window back, whatever state it was left in — creating it if there is none.
+    ///
+    /// There may genuinely be no window: a launch that comes from opening a file in Finder, with no
+    /// window state left to restore (the window was closed when Din last quit), gets none from
+    /// SwiftUI because of `handlesExternalEvents(matching: [])`. Everything else here can only
+    /// re-show a window that exists, so without creating one the app would play with no interface
+    /// and no way to get one.
     func showMainWindow() {
-        guard let window = mainWindow else { return }
+        guard let window = mainWindow else {
+            openNewMainWindow()
+            return
+        }
         // `makeKeyAndOrderFront` does not un-minimize a window sitting in the Dock.
         if window.isMiniaturized {
             window.deminiaturize(nil)
@@ -192,10 +232,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func adopt(_ action: OpenWindowAction) {
+        let isFirst = openWindow == nil
+        openWindow = action
+        // Called while the menu bar's body is being evaluated, so don't create a window from here.
+        if isFirst && windowRequestedEarly {
+            windowRequestedEarly = false
+            DispatchQueue.main.async { self.showMainWindow() }
+        }
+    }
+
+    private func openNewMainWindow() {
+        guard let openWindow else {
+            windowRequestedEarly = true
+            return
+        }
+        MainActor.assumeIsolated {
+            openWindow(id: Self.mainWindowID)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         // Opening files while the window is closed should bring the app back,
         // not just start playing invisibly.
-        showMainWindow()
+        //
+        // On a launch, this arrives before `applicationDidFinishLaunching`: before SwiftUI has
+        // restored (or decided not to create) a window, and before the menu bar that supplies
+        // `openWindow` exists. Waiting a turn lets that settle, so an existing window is reused
+        // rather than joined by a second one.
+        DispatchQueue.main.async { self.showMainWindow() }
         Task { @MainActor in
             for url in urls {
                 RecentItems.shared.addFile(url)
@@ -215,12 +281,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        // Returning false means "handled, don't do the default". Only claim that
-        // when we actually have a window to show — otherwise returning false with
-        // nothing to restore is what leaves the app running with no window and no
-        // way to get one back (the File menu has no "New Window" item either).
+        // Returning false means "handled, don't do the default". The default can't be relied on:
+        // when no window exists at all it creates none, which is how the app ended up running with
+        // no window and no way to get one back. `showMainWindow` creates one in that case.
         guard !flag else { return true }
-        guard mainWindow != nil else { return true }
         showMainWindow()
         return false
     }
